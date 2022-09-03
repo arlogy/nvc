@@ -1,0 +1,116 @@
+{
+    "fsmAlphabet": "a, b",
+    "nodes": [
+        {
+            "x": 315,
+            "y": 218,
+            "text": "q_0",
+            "isAcceptState": true,
+            "radius": 25,
+            "opacity": 1,
+            "dashesEnabled": false,
+            "borderColor": "black",
+            "bgColor": "transparent",
+            "textColor": "black",
+            "readonly.isInitialState": true
+        },
+        {
+            "x": 470,
+            "y": 218,
+            "text": "q_1",
+            "isAcceptState": true,
+            "radius": 25,
+            "opacity": 0.5,
+            "dashesEnabled": true,
+            "borderColor": "blue",
+            "bgColor": "pink",
+            "textColor": "green",
+            "readonly.isInitialState": true
+        }
+    ],
+    "links": [
+        {
+            "type": "StartLink",
+            "nodeIndex": 0,
+            "text": "start",
+            "opacity": 0.5,
+            "dashesEnabled": true,
+            "lineColor": "blue",
+            "arrowColor": "green",
+            "textColor": "black",
+            "prefersNodeVisualAttrs": false,
+            "deltaX": -65,
+            "deltaY": 0
+        },
+        {
+            "type": "SelfLink",
+            "nodeIndex": 0,
+            "nodeHasArrow": true,
+            "text": "a",
+            "opacity": 1,
+            "dashesEnabled": false,
+            "lineColor": "black",
+            "arrowColor": "black",
+            "textColor": "black",
+            "anchorAngle": -1.5707963267948966
+        },
+        {
+            "type": "Link",
+            "nodeAIndex": 0,
+            "nodeAHasArrow": false,
+            "nodeBIndex": 1,
+            "nodeBHasArrow": true,
+            "text": "a",
+            "opacity": 1,
+            "dashesEnabled": false,
+            "lineColor": "black",
+            "arrowColor": "black",
+            "textColor": "black",
+            "lineAngleAdjust": 3.141592653589793,
+            "parallelPart": 0.48344370860927155,
+            "perpendicularPart": -32
+        },
+        {
+            "type": "StartLink",
+            "nodeIndex": 1,
+            "text": "start",
+            "opacity": 1,
+            "dashesEnabled": false,
+            "lineColor": "black",
+            "arrowColor": "black",
+            "textColor": "black",
+            "prefersNodeVisualAttrs": true,
+            "deltaX": 65,
+            "deltaY": 0
+        },
+        {
+            "type": "SelfLink",
+            "nodeIndex": 1,
+            "nodeHasArrow": true,
+            "text": "b",
+            "opacity": 0.5,
+            "dashesEnabled": true,
+            "lineColor": "blue",
+            "arrowColor": "blue",
+            "textColor": "blue",
+            "anchorAngle": 1.5707963267948966
+        },
+        {
+            "type": "Link",
+            "nodeAIndex": 1,
+            "nodeAHasArrow": false,
+            "nodeBIndex": 0,
+            "nodeBHasArrow": true,
+            "text": "b",
+            "opacity": 0.5,
+            "dashesEnabled": true,
+            "lineColor": "blue",
+            "arrowColor": "blue",
+            "textColor": "blue",
+            "lineAngleAdjust": 3.141592653589793,
+            "parallelPart": 0.48344370860927155,
+            "perpendicularPart": -30
+        }
+    ],
+    "textItems": []
+}
