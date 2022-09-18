@@ -17,7 +17,6 @@ nvc was initiated in 2020 and originates from Evan Wallace's
 [FSM Designer](https://github.com/evanw/fsm/) created back in 2010. His project
 is MIT-covered too. The main difference with nvc is that the latter is
 customizable and ready to use in your own projects, including key changes
-recorded in the [changelog](CHANGELOG.md), especially for the first published
-version.
+recorded in the [changelog](CHANGELOG.md), especially for version 0.9.0.
 
 A short documentation and practical examples are available [here](doc).

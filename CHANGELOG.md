@@ -8,9 +8,9 @@ code. They were initiated in 2020 and refined over time, mainly in 2020 and
 2022 during spare time.*
 
 - Refactoring
-    - Refactor the source code to create a documented API for third-party
-    consumers. With that in mind, only new features and bug fixes will be
-    mentionned below, not the functions added, removed or refactored for
+    - Refactor the source code to create a documented and tested API for
+    third-party consumers. With that in mind, only new features and bug fixes
+    will be mentionned below, not the functions added, removed or refactored for
     example.
 - Bug fixes
     - Combine LaTeX subscripts next to each other when exporting to LaTeX. E.g.
@@ -20,11 +20,12 @@ code. They were initiated in 2020 and refined over time, mainly in 2020 and
     `\alphaxy` to `\alpha{}xy`. This fixes the *undefined control sequence*
     error that occurs when the exported content is parsed by a LaTeX
     interpreter. Indeed, `\alpha` is a valid LaTeX command but not `\alphaxy`.
-    - Define Greek letter commands that could not otherwise be interpreted in
-    the exported LaTeX content. These include `\Alpha` and `\Epsilon` for
-    example.
+    - Define Greek letter commands that could not otherwise be processed if the
+    exported content is parsed by a LaTeX interpreter. These commands include
+    `\Alpha` and `\Epsilon` for example.
     - Correctly convert texts to LaTeX during export, including escaping special
-    characters. E.g. `\` become `\backslash` and `$` become `\$`.
+    characters. E.g. `\` becomes `\backslash` (while preserving `\alpha` for
+    example) and `$` becomes `\$`.
 - New features
     - Add support for graphs in general, not just finite state machines.
     - Add support for advanced caret/cursor positioning on the selected canvas
@@ -49,5 +50,5 @@ code. They were initiated in 2020 and refined over time, mainly in 2020 and
     - Easily remove all items from the canvas by clicking a single *Clear*
     button.
     - Easily move all nodes and arrows by dragging an empty area in the canvas.
-    - Implement several utility functions such as parsing FSM alphabet or
-    building FSM state-transition table.
+    - Implement several utility functions such as parsing FSM alphabet,
+    validating FSM or building FSM state-transition table.
