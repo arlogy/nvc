@@ -4,12 +4,7 @@
  Copyright (c) 2022 https://github.com/arlogy
 */
 
-global.Jsu = {
-    'Common': require('../src/jsu_common.js'),
-    'CsvParser': require('../src/jsu_csv_parser.js'),
-    'Event': require('../src/jsu_event.js'),
-};
-require('../src/nvc.js');
+require('./setup.js');
 require('../src/nvc_fsm.js');
 
 const assert = require('assert');

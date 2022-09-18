@@ -4,71 +4,16 @@
  Copyright (c) 2022 https://github.com/arlogy
 */
 
-global.Jsu = {
-    'Common': require('../src/jsu_common.js'),
-    'Event': require('../src/jsu_event.js'),
-};
-require('../src/nvc.js');
-
-// Nvc properties are mostly accessor properties (i.e. get/set functions) around
-// real internal values. These properties cannot be faked using sinon.stub(),
-// sinon.stub().value() or sinon.replaceGetter() (see sinon sandboxes) for
-// example. Therefore, we explicitly override said properties as follows, and we
-// restore them after each test case using the NvcBackup variable.
-//     - Nvc.myProp = myVal;
-//           that's how we will stub Nvc properties
-//     - Nvc.myProp = sinon.stub().callsFake(NvcBackup.myProp);
-//           another approach when we want a function to call its original
-//           version
-const NvcBackup = Jsu.Common.cloneDeep(Nvc);
-
-const _setCanvas = (val) => { Nvc.setCanvasObj(val); };
-
-const _setAlphabetContainer = (val) => { Nvc.setFsmAlphabetContainerObj(val); };
-
-const _getNodes = () => Nvc.getData().nodes;
-const _setNodes = (array) => {
-    const nodes = Nvc.getData().nodes;
-    nodes.splice(0);
-    nodes.push(...array);
-};
-
-const _getLinks = () => Nvc.getData().links;
-const _setLinks = (array) => {
-    const links = Nvc.getData().links;
-    links.splice(0);
-    links.push(...array);
-};
-
-const _getTextItems = () => Nvc.getData().textItems;
-const _setTextItems = (array) => {
-    const links = Nvc.getData().textItems;
-    links.splice(0);
-    links.push(...array);
-};
-
-const restoreNvc = () => {
-    for(const prop in NvcBackup)
-        Nvc[prop] = NvcBackup[prop];
-    // prevent a test from passing or failing due to values set by a previous test
-    _setCanvas(null);
-    _setAlphabetContainer(null);
-    _setNodes([]);
-    _setLinks([]);
-    _setTextItems([]);
-};
+const {
+    NvcBackup, _setCanvas, _setAlphabetContainer, _getNodes, _setNodes,
+    _getLinks, _setLinks, _getTextItems, _setTextItems,
+} = require('./setup.js');
+const {dummy} = require('./utils.js');
 
 const assert = require('assert');
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const sinon = require('sinon');
-afterEach(() => {
-    sinon.restore(); // restore the default sandbox to prevent memory leak
-    restoreNvc();
-});
-
-const { randomUUID } = require('crypto');
-const dummy = () => 'dummy-' + randomUUID(); // returns an arbitrary unique value that we don't care what it is
 
 const optParamVal = undefined; // value used when a parameter is optional but passed to a function to allow generic test cases
 const jsonStringifyIndents = [optParamVal, null, '', -2, 2, '  '];
@@ -92,6 +37,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
     global.document = dom.window.document;
 
     const JsuCmn = Jsu.Common;
+    const JsuLtx = Jsu.Latex;
 
     (function() {
         describe('setConfigFor()', () => {
@@ -1196,68 +1142,6 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
     })();
 
     (function() {
-        describe('getLatexShortcutPatterns()', () => {
-            it('should return only the expected patterns', () => {
-                const wrapper = Nvc.getLatexShortcutPatterns();
-                assert.strictEqual('greekLetter' in wrapper, true);
-                assert.strictEqual('specialChar' in wrapper.greekLetter, true);
-                assert.strictEqual('valueSource' in wrapper.greekLetter, true);
-                assert.strictEqual('value' in wrapper.greekLetter, true);
-                delete wrapper.greekLetter;
-                assert.strictEqual('subscript' in wrapper, true);
-                assert.strictEqual('specialChar' in wrapper.subscript, true);
-                assert.strictEqual('value' in wrapper.subscript, true);
-                delete wrapper.subscript;
-                assert.deepStrictEqual(wrapper, {});
-            });
-        });
-    })();
-
-    (function() {
-        describe('convertLatexShortcuts()', () => {
-            const greekLetterNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega'];
-            const subscriptDigits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-            it('should correctly convert one shortcut at a time', () => {
-                for(let i = 0; i < greekLetterNames.length; i++) {
-                    const name = greekLetterNames[i];
-                    assert.strictEqual(Nvc.convertLatexShortcuts('\\' + name), String.fromCharCode(913 + i + (i > 16)));
-                    assert.strictEqual(Nvc.convertLatexShortcuts('\\' + name.toLowerCase()), String.fromCharCode(945 + i + (i > 16)));
-                }
-                for(let i = 0; i < subscriptDigits.length; i++) {
-                    assert.strictEqual(Nvc.convertLatexShortcuts('_' + i), String.fromCharCode(8320 + i));
-                }
-            });
-            it('should correctly convert several shortcuts at a time', () => {
-                let shortcuts = [];
-                shortcuts.push(...greekLetterNames.map(function(name) {
-                    return '\\{0}\\{1}'.format(name, name.toLowerCase());
-                }));
-                shortcuts.push(...subscriptDigits.map(function(digit) {
-                    return '_{0}'.format(digit);
-                }));
-                shortcuts.push('again', ...shortcuts);
-                shortcuts = shortcuts.join(' ');
-                let conversions = [];
-                conversions.push(...greekLetterNames.map(function(name, i) {
-                    return '{0}{1}'.format(String.fromCharCode(913 + i + (i > 16)), String.fromCharCode(945 + i + (i > 16)));
-                }));
-                conversions.push(...subscriptDigits.map(function(digit, i) {
-                    return String.fromCharCode(8320 + i);
-                }));
-                conversions.push('again', ...conversions);
-                conversions = conversions.join(' ');
-                assert.strictEqual(Nvc.convertLatexShortcuts(shortcuts), conversions);
-            });
-            it('should correctly convert a stable value (unchanged after conversion)', () => {
-                const entries = ['', '0', ' ', 'text text', '\\', '_'];
-                for(let i = 0; i < entries.length; i++) {
-                    assert.strictEqual(Nvc.convertLatexShortcuts(entries[i]), entries[i]);
-                }
-            });
-        });
-    })();
-
-    (function() {
         const insertableCharCodeMin = 0x20;
         const insertableCharCodeMax = 0x7E;
         const validCharCodesStr = () => {
@@ -1311,83 +1195,12 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
 
     (function() {
         describe('textToLatex()', () => {
-            const sep = '---'; // content separator; must be set to a value that will not be converted when passed to textToLatex()
-            const latexSpecialCharsStr = '\\^ ~${}&#%_';
-            const basicStr = (() => { // basic string to understand what to expect from textToLatex()
-                const latexSubscriptsToPossiblyCombineStr = '_0_1_0/_0/_a_0_1'; // see (1) below
-                const latexCommandsToPossiblyRewriteStr = '\\alphab\\alpha2\\cmdb\\cmd2'; // see (2) below
-                return [
-                    latexSpecialCharsStr,
-                    latexSubscriptsToPossiblyCombineStr,
-                    latexCommandsToPossiblyRewriteStr,
-                ].join(sep);
-                // (1) '_a' is not a LaTeX subscript, so it will not be combined and '_' will be considered as a LaTeX special character
-                // (2) '\cmd' is not a LaTeX command, so it will not be rewritten and '\' will be considered as a LaTeX special character
-            })();
-            const advancedStr = (() => { // advanced string
-                const latexPatternWrapper = Nvc.getLatexShortcutPatterns();
-                const latexCommandPatterns = latexPatternWrapper.greekLetter.valueSource.map(x => x.substring(1));
-                latexCommandPatterns.push('\\xyz');
-                const latexSubscriptPatterns = [ // will match latexPatternWrapper.subscript.value
-                    '_0', '_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9',
-                ];
-                latexSubscriptPatterns.push('_xyz');
-                return [
-                    // special characters
-                    latexSpecialCharsStr,
-                    // subscripts that might be combined or not
-                    latexSubscriptPatterns.join('/'),
-                    latexSubscriptPatterns.map(x => x + x).join('/'),
-                    latexSubscriptPatterns.map(x => x + ' ' + x + '_9').join('/'),
-                    // commands that might be rewritten or not
-                    latexCommandPatterns.join('/'),
-                    latexCommandPatterns.map(x => x + 'abc').join('/'),
-                    latexCommandPatterns.map(x => x + 123).join('/'),
-                ].join(sep)
-            })();
-            it('should not convert the text when the mode is invalid', () => {
-                assert.strictEqual(Nvc.textToLatex(basicStr, dummy()), basicStr);
-                assert.strictEqual(Nvc.textToLatex(advancedStr, dummy()), advancedStr);
-            });
-            it('should convert the text correctly otherwise (mode = text)', () => {
-                (function() {
-                    const str1 = '\\textbackslash\\textasciicircum \\textasciitilde\\$\\{\\}\\&\\#\\%\\_';
-                    const str2 = '_{010}/_0/\\_a_{01}';
-                    const str3 = '\\alpha{}b\\alpha2\\textbackslash{}cmdb\\textbackslash{}cmd2';
-                    const retVal = Nvc.textToLatex(basicStr, 'text');
-                    assert.deepStrictEqual(retVal.split(sep), [str1, str2, str3]);
-                })();
-                (function() {
-                    const str1 = '\\textbackslash\\textasciicircum \\textasciitilde\\$\\{\\}\\&\\#\\%\\_';
-                    const str2 = '_0/_1/_2/_3/_4/_5/_6/_7/_8/_9/\\_xyz';
-                    const str3 = '_{00}/_{11}/_{22}/_{33}/_{44}/_{55}/_{66}/_{77}/_{88}/_{99}/\\_xyz\\_xyz';
-                    const str4 = '_0 _{09}/_1 _{19}/_2 _{29}/_3 _{39}/_4 _{49}/_5 _{59}/_6 _{69}/_7 _{79}/_8 _{89}/_9 _{99}/\\_xyz \\_xyz_9';
-                    const str5 = '\\Alpha/\\alpha/\\Beta/\\beta/\\Gamma/\\gamma/\\Delta/\\delta/\\Epsilon/\\epsilon/\\Zeta/\\zeta/\\Eta/\\eta/\\Theta/\\theta/\\Iota/\\iota/\\Kappa/\\kappa/\\Lambda/\\lambda/\\Mu/\\mu/\\Nu/\\nu/\\Xi/\\xi/\\Omicron/\\omicron/\\Pi/\\pi/\\Rho/\\rho/\\Sigma/\\sigma/\\Tau/\\tau/\\Upsilon/\\upsilon/\\Phi/\\phi/\\Chi/\\chi/\\Psi/\\psi/\\Omega/\\omega/\\textbackslash{}xyz';
-                    const str6 = '\\Alpha{}abc/\\alpha{}abc/\\Beta{}abc/\\beta{}abc/\\Gamma{}abc/\\gamma{}abc/\\Delta{}abc/\\delta{}abc/\\Epsilon{}abc/\\epsilon{}abc/\\Zeta{}abc/\\zeta{}abc/\\Eta{}abc/\\eta{}abc/\\Theta{}abc/\\theta{}abc/\\Iota{}abc/\\iota{}abc/\\Kappa{}abc/\\kappa{}abc/\\Lambda{}abc/\\lambda{}abc/\\Mu{}abc/\\mu{}abc/\\Nu{}abc/\\nu{}abc/\\Xi{}abc/\\xi{}abc/\\Omicron{}abc/\\omicron{}abc/\\Pi{}abc/\\pi{}abc/\\Rho{}abc/\\rho{}abc/\\Sigma{}abc/\\sigma{}abc/\\Tau{}abc/\\tau{}abc/\\Upsilon{}abc/\\upsilon{}abc/\\Phi{}abc/\\phi{}abc/\\Chi{}abc/\\chi{}abc/\\Psi{}abc/\\psi{}abc/\\Omega{}abc/\\omega{}abc/\\textbackslash{}xyzabc';
-                    const str7 = '\\Alpha123/\\alpha123/\\Beta123/\\beta123/\\Gamma123/\\gamma123/\\Delta123/\\delta123/\\Epsilon123/\\epsilon123/\\Zeta123/\\zeta123/\\Eta123/\\eta123/\\Theta123/\\theta123/\\Iota123/\\iota123/\\Kappa123/\\kappa123/\\Lambda123/\\lambda123/\\Mu123/\\mu123/\\Nu123/\\nu123/\\Xi123/\\xi123/\\Omicron123/\\omicron123/\\Pi123/\\pi123/\\Rho123/\\rho123/\\Sigma123/\\sigma123/\\Tau123/\\tau123/\\Upsilon123/\\upsilon123/\\Phi123/\\phi123/\\Chi123/\\chi123/\\Psi123/\\psi123/\\Omega123/\\omega123/\\textbackslash{}xyz123';
-                    const retVal = Nvc.textToLatex(advancedStr, 'text');
-                    assert.deepStrictEqual(retVal.split(sep), [str1, str2, str3, str4, str5, str6, str7]);
-                })();
-            });
-            it('should convert the text correctly otherwise (mode = math)', () => {
-                (function() {
-                    const str1 = '\\backslash\\hat\\mbox{ }\\sim\\$\\{\\}\\&\\#\\%\\_';
-                    const str2 = '_{010}/_0/\\_a_{01}';
-                    const str3 = '\\alpha{}b\\alpha2\\backslash{}cmdb\\backslash{}cmd2';
-                    const retVal = Nvc.textToLatex(basicStr, 'math');
-                    assert.deepStrictEqual(retVal.split(sep), [str1, str2, str3]);
-                })();
-                (function() {
-                    const str1 = '\\backslash\\hat\\mbox{ }\\sim\\$\\{\\}\\&\\#\\%\\_';
-                    const str2 = '_0/_1/_2/_3/_4/_5/_6/_7/_8/_9/\\_xyz';
-                    const str3 = '_{00}/_{11}/_{22}/_{33}/_{44}/_{55}/_{66}/_{77}/_{88}/_{99}/\\_xyz\\_xyz';
-                    const str4 = '_0\\mbox{ }_{09}/_1\\mbox{ }_{19}/_2\\mbox{ }_{29}/_3\\mbox{ }_{39}/_4\\mbox{ }_{49}/_5\\mbox{ }_{59}/_6\\mbox{ }_{69}/_7\\mbox{ }_{79}/_8\\mbox{ }_{89}/_9\\mbox{ }_{99}/\\_xyz\\mbox{ }\\_xyz_9';
-                    const str5 = '\\Alpha/\\alpha/\\Beta/\\beta/\\Gamma/\\gamma/\\Delta/\\delta/\\Epsilon/\\epsilon/\\Zeta/\\zeta/\\Eta/\\eta/\\Theta/\\theta/\\Iota/\\iota/\\Kappa/\\kappa/\\Lambda/\\lambda/\\Mu/\\mu/\\Nu/\\nu/\\Xi/\\xi/\\Omicron/\\omicron/\\Pi/\\pi/\\Rho/\\rho/\\Sigma/\\sigma/\\Tau/\\tau/\\Upsilon/\\upsilon/\\Phi/\\phi/\\Chi/\\chi/\\Psi/\\psi/\\Omega/\\omega/\\backslash{}xyz';
-                    const str6 = '\\Alpha{}abc/\\alpha{}abc/\\Beta{}abc/\\beta{}abc/\\Gamma{}abc/\\gamma{}abc/\\Delta{}abc/\\delta{}abc/\\Epsilon{}abc/\\epsilon{}abc/\\Zeta{}abc/\\zeta{}abc/\\Eta{}abc/\\eta{}abc/\\Theta{}abc/\\theta{}abc/\\Iota{}abc/\\iota{}abc/\\Kappa{}abc/\\kappa{}abc/\\Lambda{}abc/\\lambda{}abc/\\Mu{}abc/\\mu{}abc/\\Nu{}abc/\\nu{}abc/\\Xi{}abc/\\xi{}abc/\\Omicron{}abc/\\omicron{}abc/\\Pi{}abc/\\pi{}abc/\\Rho{}abc/\\rho{}abc/\\Sigma{}abc/\\sigma{}abc/\\Tau{}abc/\\tau{}abc/\\Upsilon{}abc/\\upsilon{}abc/\\Phi{}abc/\\phi{}abc/\\Chi{}abc/\\chi{}abc/\\Psi{}abc/\\psi{}abc/\\Omega{}abc/\\omega{}abc/\\backslash{}xyzabc';
-                    const str7 = '\\Alpha123/\\alpha123/\\Beta123/\\beta123/\\Gamma123/\\gamma123/\\Delta123/\\delta123/\\Epsilon123/\\epsilon123/\\Zeta123/\\zeta123/\\Eta123/\\eta123/\\Theta123/\\theta123/\\Iota123/\\iota123/\\Kappa123/\\kappa123/\\Lambda123/\\lambda123/\\Mu123/\\mu123/\\Nu123/\\nu123/\\Xi123/\\xi123/\\Omicron123/\\omicron123/\\Pi123/\\pi123/\\Rho123/\\rho123/\\Sigma123/\\sigma123/\\Tau123/\\tau123/\\Upsilon123/\\upsilon123/\\Phi123/\\phi123/\\Chi123/\\chi123/\\Psi123/\\psi123/\\Omega123/\\omega123/\\backslash{}xyz123';
-                    const retVal = Nvc.textToLatex(advancedStr, 'math');
-                    assert.deepStrictEqual(retVal.split(sep), [str1, str2, str3, str4, str5, str6, str7]);
-                })();
+            it('should bahave as expected', () => {
+                const toLatex = sinon.stub(JsuLtx, 'toLatex').returns(dummy());
+                const text = dummy(), mode = dummy();
+                const retVal = Nvc.textToLatex(text, mode);
+                assert.strictEqual(toLatex.calledOnceWithExactly(text, mode), true);
+                assert.strictEqual(retVal, toLatex.getCall(0).returnValue);
             });
         });
     })();

@@ -9,6 +9,7 @@ if(typeof Nvc.quick !== 'undefined')
 
 Nvc.quick = (function() {
     var JsuCmn = Jsu.Common;
+    var JsuLtx = Jsu.Latex;
 
     var outputElt = null; // see setOutput()
     var outputElt_focusListenersData = null;
@@ -258,7 +259,7 @@ Nvc.quick = (function() {
         else {
             var text = 'Finite state machine is not valid.'
             for(var i = 0; i < model.errors.length; i++) {
-                text += '\n    - ' + Nvc.convertLatexShortcuts(model.errors[i]);
+                text += '\n    - ' + JsuLtx.convertLatexShortcuts(model.errors[i]);
             }
             outputText(text);
         }

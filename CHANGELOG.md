@@ -1,5 +1,14 @@
 # Changelog
 
+## Next version
+
+- Remove `Nvc.convertLatexShortcuts()` which should be replaced with `JsuLtx.convertLatexShortcuts()`.
+- Remove `Nvc.getLatexShortcutPatterns()` which should be replaced with `JsuLtx.getLatexShortcutData()`
+accordingly: the `greekLetter.specialChar`, `greekLetter.valueSource`, `greekLetter.value`,
+`subscript.specialChar` and `subscript.value` properties become `greekLetter.patterns.specialChar`,
+`greekLetter.patterns.list`, `greekLetter.patterns.value`, `subscript.pattern.specialChar`
+and `subscript.pattern.value` respectively.
+
 ## 0.9.0 - 2022/09/03
 
 *Starting from `fsm.js` downloaded from the [website](https://madebyevan.com/fsm/)

@@ -50,6 +50,7 @@ if(typeof Nvc !== 'undefined') throw new Error('Nvc is already defined');
 Nvc = (function() {
     var JsuCmn = Jsu.Common;
     var JsuEvt = Jsu.Event;
+    var JsuLtx = Jsu.Latex;
 
     // --- Config Object ---
 
@@ -930,7 +931,7 @@ Nvc = (function() {
     };
 
     TextItem.prototype.getBoundingRect = function() {
-        var text = convertLatexShortcuts(this.text);
+        var text = JsuLtx.convertLatexShortcuts(this.text);
         var width = Math.round(measureTextUsingCanvas(text, config.canvas.font).width) + 6; // padding is useful when text is empty for example
         var height = caretHeight + 6; // add padding here too
         return {
@@ -947,251 +948,6 @@ Nvc = (function() {
     };
 
     TextItem.prototype.snapTo = snapTo;
-
-    // --- LaTeX Shortcuts ---
-
-    // regex-alternation-note: when entries in an object/array are joined using
-    // alternation (OR) to create patterns like '...|...|...', make sure for
-    // example that 'abc|a' is always created instead of 'a|abc', otherwise the
-    // 'abc' part might not get a chance to match; this means that the order of
-    // the elements in the object/array is important.
-
-    var greekLetterNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi', 'Rho', 'Sigma', 'Tau', 'Upsilon', 'Phi', 'Chi', 'Psi', 'Omega'];
-
-    // Returns an object providing the regular expression patterns used
-    // internally for LaTeX shortcuts. Should not be called more than once to
-    // avoid unnecessary calculations.
-    function getLatexShortcutPatterns() {
-        var greekPatterns = greekLetterNames.map(function(name) {
-            return ['\\\\' + name, '\\\\' + name.toLowerCase()];
-        });
-        greekPatterns = [].concat(...greekPatterns); // flatten array
-
-        return {
-            'greekLetter': {
-                'specialChar': '\\\\',
-                'valueSource': greekPatterns,
-                'value': greekPatterns.join('|'),
-            },
-            'subscript': {
-                'specialChar': '_',
-                'value': '_[0-9]',
-            },
-        };
-    }
-
-    // this object centralizes regular expression patterns for LaTeX shortcuts and helps avoid copy/paste in source code
-    // however, some entries are duplicated in rare places for optimal readability
-    //     when this is the case, a comment referring to the duplicated properties is added
-    // one must also keep regex-alternation-note in mind
-    var latexShortcutPatterns = getLatexShortcutPatterns();
-
-    // a character that will not introduce a LaTeX shortcut if added after a string
-    // e.g. 'a' is not such a character for '\bet', neither is '0' for '_'
-    var safeLatexShortcutSuffix = '-';
-
-    // join LaTeX shortcut patterns using alternation (OR)
-    var latexShortcutPatternForSpecialChars = '';
-    var latexShortcutPatternForValues = '';
-    (function() {
-        var specialCharPatterns = [];
-        var valuePatterns = [];
-        for(var prop in latexShortcutPatterns) {
-            specialCharPatterns.push(latexShortcutPatterns[prop].specialChar);
-            valuePatterns.push(latexShortcutPatterns[prop].value);
-        }
-        latexShortcutPatternForSpecialChars = specialCharPatterns.join('|');
-        latexShortcutPatternForValues = valuePatterns.join('|');
-    })();
-
-    // Converts all LaTeX shortcuts in a text to actual string representation
-    // and returns the modified text.
-    //     - text: the text containing the shortcuts to convert; see some
-    //       examples below.
-    //           - Converted: \Beta, \beta, \Pi, \pi, _0, _0_9.
-    //           - Not converted because not LaTeX shortcuts: \BeTa, \pI, _a.
-    //           - Note: '\' must be escaped with another '\' in source code,
-    //             but not when hand typed directly into the canvas.
-    //
-    // Please keep in mind that convertLatexShortcuts(s1 + s2) might be
-    // different from convertLatexShortcuts(s1) + convertLatexShortcuts(s2). So
-    // one is not necessarily a valid substitute for the other in all contexts.
-    // Here are some sample values for comparison.
-    //     - s1 = '\alph' and s2 = 'a' (comparison will fail with these values)
-    //     - s1 = 'ab_' and s2 = '0' (comparison will fail with these values)
-    //     - s1 = 'ab_' and s2 = 'c' (comparison will succeed with these values)
-    function convertLatexShortcuts(text) {
-        var i = 0;
-
-        // rules from latexShortcutPatterns.greekLetter.value are duplicated below for readability
-        for(i = 0; i < greekLetterNames.length; i++) {
-            var name = greekLetterNames[i];
-            text = text.replace(new RegExp('\\\\' + name, 'g'), String.fromCharCode(913 + i + (i > 16)));
-            text = text.replace(new RegExp('\\\\' + name.toLowerCase(), 'g'), String.fromCharCode(945 + i + (i > 16)));
-        }
-
-        // rules from latexShortcutPatterns.subscript.value are duplicated below for readability
-        for(i = 0; i < 10; i++) {
-            text = text.replace(new RegExp('_' + i, 'g'), String.fromCharCode(8320 + i));
-        }
-
-        return text;
-    }
-
-    // Finds all LaTeX shortcut special characters in a text and returns an
-    // object mapping the start index of each special character in the text to
-    // its value, or null if no special characters are found. Note that the
-    // special characters are matched regardless of the presence or absence of
-    // LaTeX shortcuts in the text.
-    //     - text: the text containing the special characters to find.
-    function findLatexShortcutSpecialCharsAndIndex(text) {
-        return JsuCmn.matchAllAndIndex(text, latexShortcutPatternForSpecialChars);
-    }
-
-    // Finds all LaTeX shortcuts in a text and returns an array reflecting the
-    // structure of the text and the LaTeX shortcuts found if any. The returned
-    // array is similar in structure to the value returned by convertLatexShortcuts():
-    // they share the same length and have comparable content. For better
-    // understanding, please try these two functions on any entry of your choice
-    // that contains LaTeX shortcuts (or not).
-    //     - text: the text containing the shortcuts to find.
-    function isolateLatexShortcutData(text) {
-        return JsuCmn.isolateMatchingData(text, latexShortcutPatternForValues);
-    }
-
-    // Find all LaTeX shortcuts in a text the same way as isolateLatexShortcutData(),
-    // but returns simplified data (i.e. the values of the LaTeX shortcuts).
-    //     - text: the text containing the shortcuts to find.
-    function isolateLatexShortcutValues(text) {
-        return JsuCmn.isolateMatchingValues(text, latexShortcutPatternForValues);
-    }
-
-    // Replaces all LaTeX shortcut special characters from the LaTeX shortcuts
-    // in a text and returns the modified text. In other words, special
-    // characters that are not part of a LaTeX shortcut are ignored.
-    //     - text: the text containing the special characters to replace.
-    //     - greekLetterSpecialCharReplacement: the replacement value of the
-    //       special character for Greek letters; ignored if undefined or null
-    //       (i.e. no replacement takes place).
-    //     - subscriptSpecialCharReplacement: the replacement value of the
-    //       special character for subscripts; ignored if undefined or null
-    //       (i.e. no replacement takes place).
-    //
-    // Note: this function was introduced because LaTeX shortcuts contain
-    // special characters that could also be special characters in other
-    // contexts and thus would require special handling as illustrated by
-    // textToLatex() for example. So this function can be used to hide said
-    // special characters from the shortcuts so that they are not processed
-    // during said special handling. See replaceSpecialCharsInLatexShortcuts_example()
-    // for such a use case with detailed explanation.
-    function replaceSpecialCharsInLatexShortcuts(text,
-                                                 greekLetterSpecialCharReplacement,
-                                                 subscriptSpecialCharReplacement) {
-        var repl = {}; // wrapper object for replacements
-        if(greekLetterSpecialCharReplacement !== undefined && greekLetterSpecialCharReplacement !== null)
-            repl.greekLetter = greekLetterSpecialCharReplacement;
-        if(subscriptSpecialCharReplacement !== undefined && subscriptSpecialCharReplacement !== null)
-            repl.subscript = subscriptSpecialCharReplacement;
-
-        return isolateLatexShortcutData(text).map(function(data) {
-            if(data.matched) {
-                for(var prop in latexShortcutPatterns) {
-                    if(prop in repl) {
-                        data.value = data.value.replace(new RegExp(latexShortcutPatterns[prop].specialChar, 'g'), repl[prop]);
-                    }
-                }
-            }
-            return data.value;
-        }).join('');
-    }
-
-    function replaceSpecialCharsInLatexShortcuts_example() {
-        var str = '\\alpha q_0 \\_+ \\alpha q_0';
-        console.log(str);
-
-        // we want to convert all LaTeX shortcut special characters in str to specific values
-        // while keeping the LaTeX shortcuts unchanged
-        console.log(
-            // first replace the special characters with temporary values that must not contain said special characters
-            replaceSpecialCharsInLatexShortcuts(str, 'TMP1-xYz', 'TMP2-xYz')
-            // do special conversion
-           .replace(/\\/g, '{backslash}')
-           .replace(/_/g, '{underscore}')
-            // restore the previously removed special characters
-           .replace(/TMP1-xYz/g, '\\')
-           .replace(/TMP2-xYz/g, '_')
-        );
-    }
-
-    // Combines the LaTeX subscripts next to each other in a text into a single
-    // subscript and returns the modified text. This is required to avoid the
-    // "double subscript" error in a LaTeX document.
-    //     - text: the text containing the subscripts to combine; see some
-    //       examples below.
-    //           - _0_1_0 converted to _{010}.
-    //           - _0 not converted because not necessary to do so.
-    function combineLatexSubscripts(text) {
-        // rules from latexShortcutPatterns.subscript.value are duplicated below for readability
-        var matches = text.match(/_[0-9](_[0-9])+/g); // match subscripts next to each other only
-        if(matches !== null) {
-            for(var i = 0; i < matches.length; i++) {
-                text = text.replace(matches[i], '_{' + matches[i].replace(/_/g, '') + '}');
-            }
-        }
-        return text;
-    }
-
-    // Rewrites the LaTeX commands in a text if needed to avoid the "undefined
-    // control sequence" error in a LaTeX document. Indeed, if we assume that
-    // \cmd is a valid LaTeX command name, then \cmd is valid in a LaTeX
-    // document, but this is not necessarily the case for \cmd<letter> where
-    // <letter> matches [a-zA-Z]. So one might want to separate <letter> from
-    // \cmd so that the LaTeX interpreter doesn't see an unexpected command.
-    //     - text: the text containing the commands to rewrite; see some
-    //       examples and function call syntax below assuming \cmd is the
-    //       command we want to rewrite.
-    //           - \cmdabc converted to \cmd{}abc.
-    //           - \cmd or \cmd2 not converted because not necessary to do so.
-    //           - call syntax taking into account the above examples:
-    //                 console.log(rewriteLatexCommands('\\cmdabc \\cmd \\cmd2 \\cmd2b \\cmd3b', '\\\\cmd'));
-    //                 console.log(rewriteLatexCommands('\\cmdabc \\cmd \\cmd2 \\cmd2b \\cmd3b', '\\\\cmd3|\\\\cmd'));
-    //     - pattern: the regular expression pattern to match the LaTeX commands
-    //       to rewrite; e.g. \oneCommand|\anotherCommand.
-    //
-    // Note: for your information, you can search "latex command syntax" on the
-    // internet to find out what LaTeX command names are made of. Also note that
-    // \cmd2 and \cmd{2} are correct ways to pass a single digit (i.e. 2) as
-    // parameter to \cmd if it expects any parameter, and that explains why this
-    // function should not convert \cmd2 to \cmd{}2 when \cmd is the command to
-    // rewrite; this also probably explains why numbers are not allowed by
-    // default in LaTeX command names.
-    function rewriteLatexCommands(text, pattern) {
-        var matches = JsuCmn.isolateMatchingData(text, pattern);
-        return matches.map(function(data, i) {
-            if(data.matched) {
-                var j = i + 1; // next data index
-                if(j < matches.length) {
-                    if(matches[j].value !== '' && /[a-zA-Z]/.test(matches[j].value[0])) {
-                        data.value += '{}';
-                    }
-                }
-            }
-            return data.value;
-        }).join('');
-    }
-
-    // Rewrites known (application-specific) LaTeX commands in a text using
-    // rewriteLatexCommands().
-    //     - text: the text containing the commands to rewrite.
-    //     - pattern: optional; a regular expression pattern to match additional
-    //       LaTeX commands to rewrite; ignored if undefined, null or the empty
-    //       string (after removing trailing whitespaces).
-    function rewriteKnownLatexCommands(text, pattern) {
-        var patterns = [latexShortcutPatterns.greekLetter.value, pattern].filter(function(p) {
-            return p !== undefined && p !== null && p.trim() !== '';
-        });
-        return rewriteLatexCommands(text, patterns.join('|'));
-    }
 
     // --- General Routines ---
 
@@ -1261,7 +1017,7 @@ Nvc = (function() {
     }
 
     function drawText(c, originalText, x, y, angleOrNull, isSelected) {
-        var text = convertLatexShortcuts(originalText);
+        var text = JsuLtx.convertLatexShortcuts(originalText);
         var width = c.measureText(text).width;
         var widthHalf = width / 2;
 
@@ -1685,8 +1441,9 @@ Nvc = (function() {
     //
     // This function is only introduced to conform to canvas rules. For example,
     // it helps avoid LaTeX shortcut values that could be obtained using
-    // convertLatexShortcuts(), forcing the use of unconverted LaTeX shortcuts
-    // as recommended by textToLatex() which will otherwise be unusable.
+    // JsuLtx.convertLatexShortcuts(), forcing the use of unconverted LaTeX
+    // shortcuts as recommended by JsuLtx.toLatex() (called from textToLatex())
+    // which will otherwise be unusable.
     //
     // See insertableCharCodeMin and insertableCharCodeMax for more information.
     function filterTextAccordingToCanvasRules(text) {
@@ -1782,7 +1539,7 @@ Nvc = (function() {
                 nodes.push(selectedObject);
             }
             if(config.canvas.caretAdvancedPositioning && selectedObjectHasText() && prevSelectedObject !== selectedObject) {
-                caretPos = convertLatexShortcuts(selectedObject.text).length;
+                caretPos = JsuLtx.convertLatexShortcuts(selectedObject.text).length;
             }
             resetCaret();
             draw_();
@@ -1825,7 +1582,7 @@ Nvc = (function() {
                 }
             }
             if(config.canvas.caretAdvancedPositioning && selectedObjectHasText() && prevSelectedObject !== selectedObject) {
-                caretPos = convertLatexShortcuts(selectedObject.text).length;
+                caretPos = JsuLtx.convertLatexShortcuts(selectedObject.text).length;
             }
             resetCaret();
         } else {
@@ -1896,7 +1653,7 @@ Nvc = (function() {
                 selectedObject = currentLink;
                 links.push(currentLink);
                 if(config.canvas.caretAdvancedPositioning && selectedObjectHasText()) {
-                    caretPos = convertLatexShortcuts(selectedObject.text).length;
+                    caretPos = JsuLtx.convertLatexShortcuts(selectedObject.text).length;
                 }
                 resetCaret();
             }
@@ -1957,36 +1714,10 @@ Nvc = (function() {
         } else if(key === 8) { // backspace key
             if(selectedObjectHasText() && selectedObject.text !== '') {
                 if(config.canvas.caretAdvancedPositioning) {
-                    if(caretPos > 0) {
-                        // delete a single character (e.g. 'a') or a single LaTeX shortcut (e.g. '\alpha')
-                        var v = isolateLatexShortcutValues(selectedObject.text);
-                        var nextCaretPos = caretPos - 1;
-                        var nextTextBeforeCaret = v.slice(0, nextCaretPos).join('');
-                        var selectedObjectPrevText = selectedObject.text;
-                        selectedObject.text = nextTextBeforeCaret + v.slice(caretPos).join('');
-                        // update caret position
-                        var deletedText = v[nextCaretPos];
-                        var s1 = convertLatexShortcuts(selectedObjectPrevText);
-                        var s2 = convertLatexShortcuts(selectedObject.text) + convertLatexShortcuts(deletedText);
-                        if(s1.length !== s2.length) { // see (1) below
-                            var obj = findLatexShortcutSpecialCharsAndIndex(nextTextBeforeCaret);
-                            if(obj) { // should always be the case but we check anyway
-                                var k = Math.max(...Object.keys(obj));
-                                nextCaretPos = caretPos - nextTextBeforeCaret.substring(k).length;
-                            } else {
-                                // just to prevent subsequent inconsistent movements of the caret
-                                // might look like a bug to the user however, if this part of the code is ever reached
-                                nextCaretPos = 0;
-                            }
-                        }
-                        caretPos = nextCaretPos;
-                        // (1) this happens in cases like the examples described below
-                        //         when selectedObject text is '\alupha' and then 'u' is deleted
-                        //             the LaTeX shortcut '\alpha' is implicitly introduced
-                        //             so the length of the '\al' prefix string must be subtracted from the caret position
-                        //         when selectedObject object text is '\alpha_u0' and then 'u' is deleted
-                        //             the LaTeX shortcut '_0' is implicitly introduced
-                        //             so the length of the '_' prefix string must be subtracted from the caret position
+                    var obj = JsuLtx.deleteOne(selectedObject.text, caretPos);
+                    if(obj) { // can be null because we can have caretPos < 1
+                        selectedObject.text = obj.newStr;
+                        caretPos = obj.newPos;
                     }
                 } else {
                     selectedObject.text = selectedObject.text.substring(0, selectedObject.text.length - 1)
@@ -1997,7 +1728,7 @@ Nvc = (function() {
             // backspace might be a shortcut for the back button and we do NOT want to change pages
             e.preventDefault(); return false;
         } else if(key === 35 && config.canvas.caretAdvancedPositioning && selectedObjectHasText() && selectedObject.text !== '') { // end key (to move caret to the end)
-            caretPos = convertLatexShortcuts(selectedObject.text).length;
+            caretPos = JsuLtx.convertLatexShortcuts(selectedObject.text).length;
             resetCaret();
             draw_();
             // prevent page scrolling via scrollbar if visible
@@ -2023,7 +1754,7 @@ Nvc = (function() {
             e.preventDefault(); return false;
         } else if(key === 39 && config.canvas.caretAdvancedPositioning) { // right arrow key
             if(selectedObjectHasText() && selectedObject.text !== '') {
-                var maxPos = convertLatexShortcuts(selectedObject.text).length;
+                var maxPos = JsuLtx.convertLatexShortcuts(selectedObject.text).length;
                 if(++caretPos > maxPos) {
                     caretPos = maxPos;
                 }
@@ -2084,34 +1815,9 @@ Nvc = (function() {
         } else if(key >= insertableCharCodeMin && key <= insertableCharCodeMax && !e.metaKey && !e.altKey && !e.ctrlKey && selectedObjectHasText()) {
             var charToInsert = String.fromCharCode(key);
             if(config.canvas.caretAdvancedPositioning) {
-                // insert the character
-                var v = isolateLatexShortcutValues(selectedObject.text);
-                var nextTextBeforeCaret = v.slice(0, caretPos).join('') + charToInsert;
-                var textAfterCaret = v.slice(caretPos).join('');
-                selectedObject.text = nextTextBeforeCaret + textAfterCaret;
-                // update caret position
-                var caretPosStr = convertLatexShortcuts(nextTextBeforeCaret); // string to get caret position
-                var textAfterCaretWithoutSpecialChars = replaceSpecialCharsInLatexShortcuts(
-                    textAfterCaret,
-                    safeLatexShortcutSuffix + 'TMP1-kaFhyK9x',
-                    safeLatexShortcutSuffix + 'TMP2-kaFhyK9x'
-                );
-                for(var i = 0, iStr = ''; i < textAfterCaretWithoutSpecialChars.length; i++) { // see (1) below
-                    iStr += textAfterCaretWithoutSpecialChars[i];
-                    var s = convertLatexShortcuts(caretPosStr + iStr);
-                    if(caretPosStr + iStr !== s) {
-                        caretPosStr = s;
-                        break;
-                    }
-                }
-                caretPos = caretPosStr.length;
-                // (1) required for cases like the examples described below
-                //         when selectedObject text is '\alha' and then 'p' is inserted after 'l'
-                //             the LaTeX shortcut '\alpha' is implicitly introduced
-                //             so the caret must not be positionned after 'p' but after '\alpha'
-                //         when selectedObject text is '\alha\beta' and then 'p' is inserted after 'l'
-                //             this scenario is similar to the one above but here we need the call to replaceSpecialCharsInLatexShortcuts()
-                //             for example when selectedObject text is '\beta' and then another character is inserted before it (i.e. before the '\')
+                var obj = JsuLtx.insertString(selectedObject.text, caretPos, charToInsert);
+                selectedObject.text = obj.newStr;
+                caretPos = obj.newPos;
             } else {
                 selectedObject.text += charToInsert;
             }
@@ -2215,7 +1921,7 @@ Nvc = (function() {
                  + '\n'
                  // define Greek letter commands that could not be interpreted otherwise
                  //     to understand why this is necessary, you can search "greek alphabet in latex" on the internet
-                 //     also note that it is easier and clearer to list the Greek letters here instead of iterating over greekLetterNames for example
+                 //     note that all Greek letters are defined by JsuLtx.getGreekLetterNames()
                  + '\\newcommand{\\Alpha}{A}\n'
                  + '\\newcommand{\\Beta}{B}\n'
                  + '\\newcommand{\\Epsilon}{E}\n'
@@ -2477,75 +2183,17 @@ Nvc = (function() {
 
     // Converts text for use in a LaTeX document, escaping special characters if
     // any, and returns the converted text.
-    //     - text: the text to convert; LaTeX shortcuts in the text (those that
-    //       could be converted using convertLatexShortcuts()) should be passed
-    //       as is (i.e. not converted by any means) so that this function can
-    //       transform them if needed.
-    //     - mode: the LaTeX writing mode to consider, either 'text' or 'math',
-    //       otherwise the text is returned as is (no conversion takes place).
-    //       For your information, you can search "latex math mode" on the
-    //       internet.
+    //     - text: passed to JsuLtx.toLatex().
+    //     - mode: passed to JsuLtx.toLatex().
     function textToLatex(text, mode) {
-        // set the LaTeX commands to use to replace LaTeX special characters
-        var backslash;
-        var circumflex;
-        var space;
-        var tilde;
-        var latexCommands = [];
-        switch(mode) {
-            case 'text':
-                backslash = '\\textbackslash';
-                circumflex = '\\textasciicircum';
-                space = ' ';
-                tilde = '\\textasciitilde';
-                latexCommands.push(backslash, circumflex, tilde);
-                break;
-            case 'math':
-                backslash = '\\backslash';
-                circumflex = '\\hat';
-                space = '\\mbox{ }'; // there are specific commands for spacing in LaTeX math mode
-                                     // but we use \\mbox{ } because the space it displays is neither too wide nor too short
-                tilde = '\\sim';
-                latexCommands.push(backslash, circumflex, tilde);
-                break;
-            default:
-                return text; // no replacement made
-        }
-
-        // LaTeX shortcuts in text must not have been converted at all for the code below to work
-        //     indeed, replaceSpecialCharsInLatexShortcuts() might not find anything to replace otherwise
-        //
-        // we sometimes use temporary replacement values below
-        // these values are chosen so that
-        //     they are not changed by other replacement values
-        //     the user can hardly enter them by mistake
-        //
-        text = // first replace all special characters in LaTeX shortcuts with temporary values that must not contain said special characters
-               replaceSpecialCharsInLatexShortcuts(text, 'TMP1-escS2nAZ', 'TMP2-escS2nAZ')
-               // handle LaTeX special characters
-              .replace(/\\/g, 'TMP3-escS2nAZ') // replaced here so as not to replace it when used as a replacement below
-              .replace(/([\${}&#%_])/g, '\\$1') // replaced here so as not to replace it when used as a replacement below
-              .replace(/\^/g, circumflex)
-              .replace(/ /g, space)
-              .replace(/~/g, tilde)
-              .replace(/TMP3-escS2nAZ/g, backslash)
-               // restore the previously removed special characters
-              .replace(/TMP1-escS2nAZ/g, latexShortcutPatterns.greekLetter.specialChar[0])
-              .replace(/TMP2-escS2nAZ/g, latexShortcutPatterns.subscript.specialChar)
-        ;
-        text = combineLatexSubscripts(text);
-        text = rewriteKnownLatexCommands(
-            text,
-            latexCommands.map(function(cmd) { return '\\' + cmd; }).join('|') // be aware of regex-alternation-note
-        );
-        return text;
+        return JsuLtx.toLatex(text, mode);
     }
 
     // Converts text for use in an XML document, escaping special characters if
     // any, and returns the converted text.
     //     - text: the text to convert; LaTeX shortcuts in the text that are
-    //       already converted using convertLatexShortcuts() will be processed
-    //       correctly.
+    //       already converted using JsuLtx.convertLatexShortcuts() will be
+    //       processed correctly.
     // Can be used for SVG or HTML documents for example.
     function textToXml(text) {
         text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&#34;').replace(/'/g, '&#39;');
@@ -2831,8 +2479,6 @@ Nvc = (function() {
         get getTypes() { return getTypes; }, set getTypes(v) { getTypes = v; },
         get getData() { return getData; }, set getData(v) { getData = v; },
 
-        'getLatexShortcutPatterns': getLatexShortcutPatterns, // see (1) below
-        get convertLatexShortcuts() { return convertLatexShortcuts; }, set convertLatexShortcuts(v) { convertLatexShortcuts = v; },
         get filterTextAccordingToCanvasRules() { return filterTextAccordingToCanvasRules; }, set filterTextAccordingToCanvasRules(v) { filterTextAccordingToCanvasRules = v; },
         get textToLatex() { return textToLatex; }, set textToLatex(v) { textToLatex = v; },
         get textToXml() { return textToXml; }, set textToXml(v) { textToXml = v; },

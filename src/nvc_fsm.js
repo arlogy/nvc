@@ -10,6 +10,7 @@ if(typeof Nvc.fsm !== 'undefined')
 Nvc.fsm = (function() {
     var JsuCmn = Jsu.Common;
     var JsuCsvPsr = Jsu.CsvParser;
+    var JsuLtx = Jsu.Latex;
 
     // Parses a comma-separated string for FSM alphabet or FSM transition input
     // using JsuCsvPsr. Returns an object hosting several properties: see
@@ -80,7 +81,7 @@ Nvc.fsm = (function() {
         for(var i = 0; i < entries.length; i++) {
             var entry = entries[i];
 
-            if(Nvc.convertLatexShortcuts(entry).length !== 1) {
+            if(JsuLtx.convertLatexShortcuts(entry).length !== 1) {
                 retVal.errors.push(errPrefixSpaced + "'{0}' is neither a character nor a LaTeX shortcut.".format(entry));
             }
             else {
@@ -116,7 +117,7 @@ Nvc.fsm = (function() {
     function getEmptyFsmModel() {
         return {
             // please note that when string values are added to the FSM model
-            //     they might contain LaTeX shortcuts that require explicit conversion (using Nvc.convertLatexShortcuts() for example)
+            //     they might contain LaTeX shortcuts that require explicit conversion (using JsuLtx.convertLatexShortcuts() for example)
             // possible string values are error messages, FSM alphabet entries, state ids, etc.
 
             'errors': [],        // possibly empty array of error messages indicating whether the FSM is valid or not
@@ -338,15 +339,15 @@ Nvc.fsm = (function() {
     //           - No other properties are sorted.
     //     - compareConvertedShortcuts: optional; indicates whether (when
     //       sorting) each entry must be compared as is or first converted using
-    //       Nvc.convertLatexShortcuts(); defaults to true. When enabled, the
+    //       JsuLtx.convertLatexShortcuts(); defaults to true. When enabled, the
     //       result is the same as if the array to be sorted contained only
-    //       LaTeX shortcuts converted using Nvc.convertLatexShortcuts().
+    //       LaTeX shortcuts converted using JsuLtx.convertLatexShortcuts().
     //           For your information, this option was introduced because
     //           sorting LaTeX shortcuts can give different results depending on
     //           whether the shortcuts are converted before or after sorting;
     //           see code sample below.
     //               var alphabet = ['a', 'z', '0', '9', '_0', '_9', '\\epsilon', '\\gamma', '\\delta']; // contains unconverted LaTeX shortcuts
-    //               var converter = function(s) { return Nvc.convertLatexShortcuts(s); }
+    //               var converter = JsuLtx.convertLatexShortcuts;
     //               console.log(alphabet);
     //               console.log(alphabet.map(converter).sort());
     //               console.log(alphabet.slice(0).sort().map(converter)); // slice() because sort() would change the array otherwise
@@ -356,7 +357,7 @@ Nvc.fsm = (function() {
 
             var compareFunc = undefined;
             if(compareConvertedShortcuts) {
-                var converter = Nvc.convertLatexShortcuts;
+                var converter = JsuLtx.convertLatexShortcuts;
                 compareFunc = function(a, b) {
                     a = converter(a);
                     b = converter(b);
@@ -624,7 +625,7 @@ Nvc.fsm = (function() {
     // used when building such a table without using the dedicated function.
     function convertFsmTransitionTableHtmlEntry(val) {
         return Nvc.textToXml( // to escape HTML special characters
-            Nvc.convertLatexShortcuts(val)
+            JsuLtx.convertLatexShortcuts(val)
         );
     }
 
