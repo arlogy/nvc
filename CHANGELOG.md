@@ -4,6 +4,7 @@
 
 Let's say `JsuLtx = Jsu.Latex`.
 
+- Add `Nvc.parseFsmCsv()`.
 - Remove `Nvc.convertLatexShortcuts()` which should be replaced with `JsuLtx.convertLatexShortcuts()`.
 - Remove `Nvc.getLatexShortcutPatterns()` which should be replaced with `JsuLtx.getLatexShortcutData()`
 accordingly: the `greekLetter.specialChar`, `greekLetter.valueSource`, `greekLetter.value`,

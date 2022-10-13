@@ -9,22 +9,25 @@ if(typeof Nvc.fsm !== 'undefined')
 
 Nvc.fsm = (function() {
     var JsuCmn = Jsu.Common;
-    var JsuCsvPsr = Jsu.CsvParser;
     var JsuLtx = Jsu.Latex;
 
-    // Parses a comma-separated string for FSM alphabet or FSM transition input
-    // using JsuCsvPsr. Returns an object hosting several properties: see
-    // initialization of retVal in source code for more details; this is to
+    // Parses a comma-separated string (e.g. FSM alphabet or FSM transition
+    // input) using Jsu.CsvParser. Returns an object hosting several properties:
+    // see initialization of retVal in source code for more details; this is to
     // avoid redundant documentation.
     //     - str: the string to parse; '"' is the field delimiter while ','
     //       optionally followed by a maximum of four spaces are the field
     //       separators; line breaks are ignored and therefore should not be
-    //       used in the string; see JsuCsvPsr.readChunk() for detailed
+    //       used in the string; see Jsu.CsvParser.readChunk() for detailed
     //       information on parsing rules.
     //     - allowFullBlanks: optional; indicates whether str can be empty or
-    //       contain only whitespace characters; defaults to false.
+    //       contain only whitespace characters; defaults to false; if falsy, an
+    //       error is recorded (in the 'errors' property of the returned object)
+    //       when str contains only blanks.
     //     - allowDuplicates: optional; indicates whether duplicates must be
-    //       allowed in str; defaults to false.
+    //       allowed in str; defaults to false; if falsy, an error is recorded
+    //       (in the 'errors' property of the returned object) when a duplicate
+    //       is matched.
     //     - errorPrefix: optional; the generic prefix string to use when
     //       generating error messages; defaults to the empty string.
     function parseFsmCsv(str, allowFullBlanks, allowDuplicates, errorPrefix) {
@@ -38,6 +41,8 @@ Nvc.fsm = (function() {
                             //         might be faster when looking up entries frequently
                             //         especially since there are no duplicate keys in the object unlike in the array
         };
+
+        var JsuCsvPsr = Jsu.CsvParser;
 
         if(allowFullBlanks === undefined) allowFullBlanks = false;
         if(allowDuplicates === undefined) allowDuplicates = false;
@@ -60,11 +65,11 @@ Nvc.fsm = (function() {
         }
 
         var fieldSeparators = (function() {
-            var separators = [','];
+            var seps = [','];
             for(var i = 0; i < 4; i++) {
-                separators.push(separators[i] + ' ');
+                seps.push(seps[i] + ' ');
             }
-            return separators;
+            return seps;
         })();
 
         var entries = [];
@@ -72,7 +77,7 @@ Nvc.fsm = (function() {
         parser.readChunk(str);
         parser.flush();
         if(parser.getRecordsRef().length !== 0) {
-            entries = parser.getRecordsCopy()[0]; // get the only record
+            entries = parser.getRecordsRef()[0]; // get the only record (no need to copy the records using getRecordsCopy())
         }
         retVal.errors.push( // treat all warnings as errors
             ...parser.getWarningsRef().map(function(w) { return errPrefixColunned + w.message; })
@@ -118,7 +123,7 @@ Nvc.fsm = (function() {
         return {
             // please note that when string values are added to the FSM model
             //     they might contain LaTeX shortcuts that require explicit conversion (using JsuLtx.convertLatexShortcuts() for example)
-            // possible string values are error messages, FSM alphabet entries, state ids, etc.
+            // the following data can be string values: error messages, FSM alphabet entries, state ids, etc.
 
             'errors': [],        // possibly empty array of error messages indicating whether the FSM is valid or not
 
@@ -338,10 +343,10 @@ Nvc.fsm = (function() {
     //                 entries up in 'transitions.all'.
     //           - No other properties are sorted.
     //     - compareConvertedShortcuts: optional; indicates whether (when
-    //       sorting) each entry must be compared as is or first converted using
-    //       JsuLtx.convertLatexShortcuts(); defaults to true. When enabled, the
-    //       result is the same as if the array to be sorted contained only
-    //       LaTeX shortcuts converted using JsuLtx.convertLatexShortcuts().
+    //       sorting model) each entry must be compared as is or first converted
+    //       using JsuLtx.convertLatexShortcuts(); defaults to true. When
+    //       enabled, the result is the same as if each array to be sorted
+    //       contained only LaTeX shortcuts converted using JsuLtx.convertLatexShortcuts().
     //           For your information, this option was introduced because
     //           sorting LaTeX shortcuts can give different results depending on
     //           whether the shortcuts are converted before or after sorting;
@@ -630,6 +635,7 @@ Nvc.fsm = (function() {
     }
 
     return {
+        get parseFsmCsv() { return parseFsmCsv; }, set parseFsmCsv(v) { parseFsmCsv = v; },
         get parseFsmAlphabet() { return parseFsmAlphabet; }, set parseFsmAlphabet(v) { parseFsmAlphabet = v; },
         get parseFsmTransitionInput() { return parseFsmTransitionInput; }, set parseFsmTransitionInput(v) { parseFsmTransitionInput = v; },
 
