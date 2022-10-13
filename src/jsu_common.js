@@ -65,10 +65,8 @@ function() {
 
     API.isNumber = Number.isFinite || function(value) { // polyfill for Number.isFinite()
         return typeof value === 'number' && isFinite(value);
-        // Number.isFinite() is used instead of !Number.isNaN() for example
-        // because we want to define a number as a finite value (strings
-        // excluded); moreover, Number.isNaN(undefined) will return false for
-        // example
+        // Number.isFinite() is used because we want to define a number as a
+        // finite value (strings excluded)
     };
 
     API.isNumberAlike = function(value) {
@@ -90,6 +88,11 @@ function() {
         var isColor = API.isCssColor(value);
         return isColor !== null ? isColor : API.isString(value);
     };
+
+    // can be used internally when the value used to override the corresponding
+    // API.* property is not important; all we want is a check function and the
+    // initial implementation is sufficient
+    var _isArray = API.isArray;
 
     // --- Property Accessor/Modifier ---
 
@@ -114,7 +117,7 @@ function() {
         return str.replace(/{(\w+)}/g, function(match, c) { // c is the value captured in the match
             return c in fmt ? fmt[c] : match;
         });
-    }
+    };
 
     API.setStringPrototypeFormat = function() {
         if(String.prototype.format === undefined) {
@@ -209,7 +212,7 @@ function() {
 
     // --- Others ---
 
-    function _cloneDeep(value, isArrayFunc, cache) {
+    function _cloneDeep(value, cache, cloneCustomImpl) {
         switch(typeof value) {
             case 'undefined':
             case 'boolean':
@@ -219,67 +222,80 @@ function() {
             case 'function':
                 return value;
 
-            case 'symbol':
-                return cache.get(value) || cache.add(value, Symbol(value.description));
+            case 'symbol': {
+                var copy = cache.get(value);
+                return copy !== undefined ? copy : cache.add(value, Symbol(value.description));
+            }
 
             case 'object': {
                 if(value === null) return value;
 
                 var copy = cache.get(value);
-                if(copy) return copy;
+                if(copy !== undefined) return copy;
                 if(value instanceof Boolean) return cache.add(value, new Boolean(value.valueOf()));
                 if(value instanceof Date) return cache.add(value, new Date(value.valueOf()));
                 if(value instanceof Number) return cache.add(value, new Number(value.valueOf()));
                 if(value instanceof String) return cache.add(value, new String(value.valueOf()));
 
                 var i = undefined;
-                if(isArrayFunc(value)) {
+                if(_isArray(value)) {
                     copy = [];
-                    cache.add(value, copy); // cache value before the recursive _cloneDeep() call below
+                    cache.add(value, copy); // cache data before the recursive _cloneDeep() calls below
                     var valueLen = value.length;
                     for(i = 0; i < valueLen; i++) {
-                        copy.push(_cloneDeep(value[i], isArrayFunc, cache));
+                        copy.push(_cloneDeep(value[i], cache, cloneCustomImpl));
                     }
                 }
+                else if(cloneCustomImpl && ((copy = cloneCustomImpl(value, cache)) !== undefined)) {
+                    // nothing to do because value is already cloned
+                }
                 else {
-                    // clone object partially based on Object.keys()
+                    // clone object based on Object.keys()
                     //     i.e. inherited and non-enumerable properties are ignored
-                    // but this is enough for object literals ({...}) only referencing value types handled in this function
+                    // this is enough for object literals ({...})
                     //     e.g. {x:3, y:{}, z:[null, {}, Symbol()]}
                     // all the JavaScript built-in objects that one might want to support can be found at
                     //     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
                     copy = {};
-                    cache.add(value, copy); // cache value before the recursive _cloneDeep() call below
+                    cache.add(value, copy); // cache data before the recursive _cloneDeep() calls below
                     var valueKeys = Object.keys(value);
                     var valueKeysLen = valueKeys.length;
                     for(i = 0; i < valueKeysLen; i++) {
                         var prop = valueKeys[i];
-                        copy[prop] = _cloneDeep(value[prop], isArrayFunc, cache);
+                        copy[prop] = _cloneDeep(value[prop], cache, cloneCustomImpl);
                     }
                 }
                 return copy;
             }
 
-            default: // will not be reached but still retained
+            default: // will not be reached but retained anyway
                 return value;
         }
     }
 
-    API.cloneDeep = function(value) {
-        return _cloneDeep(value, API.isArray, {
-            _keys: [],
-            _vals: [],
-            get: function(key) {
-                var idx = this._keys.indexOf(key);
-                return idx !== -1 ? this._vals[idx] : undefined;
-            },
-            add: function(key, val) { // must be called only if get(key) did not find an entry
-                                      //     this is to prevent the key from being added more than once
-                this._keys.push(key);
-                this._vals.push(val);
-                return val;
-            },
-        });
+    API.cloneDeep = function(value, cache, cloneCustomImpl) {
+        if(!cache) {
+            cache = {
+                _keys: [],
+                _vals: [],
+                // returns the value to which key is mapped, or undefined if key is not found
+                // key can be anything including an object
+                get: function(key) {
+                    var idx = this._keys.indexOf(key);
+                    return idx !== -1 ? this._vals[idx] : undefined;
+                },
+                // maps key to val (which must not be undefined because get() returns undefined if key is not found)
+                // must be called only if get(key) did not find an entry
+                //     this is to prevent key from being added more than once
+                // returns val
+                add: function(key, val) {
+                    this._keys.push(key);
+                    this._vals.push(val);
+                    return val;
+                },
+            };
+        }
+        return _cloneDeep(value, cache, cloneCustomImpl);
     };
 
     return API;

@@ -265,7 +265,7 @@ function(nodejs) {
         str = API.combineLatexSubscripts(str);
         str = API.rewriteKnownLatexCommands(
             str,
-            latexCommands.map(function(cmd) { return '\\' + cmd; }) // be aware of regex-alternation-note
+            latexCommands.map(function(cmd) { return '\\' + cmd; })
         );
         return str;
     };

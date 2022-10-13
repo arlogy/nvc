@@ -71,7 +71,7 @@ function() {
                 [lineSeps, fieldDels, fieldSeps],
             ].forEach(function(arr) {
                 if(!arr[0].every(function(val) { return arr[1].indexOf(val) === -1 && arr[2].indexOf(val) === -1; }))
-                    throw new RangeError('values cannot be shared between field delimiter, field separators and line separators');
+                    throw new RangeError('Values cannot be shared between field delimiter, field separators and line separators');
             });
         }
 
