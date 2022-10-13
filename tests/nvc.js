@@ -8,14 +8,13 @@ const {
     NvcBackup, _setCanvas, _setAlphabetContainer, _getNodes, _setNodes,
     _getLinks, _setLinks, _getTextItems, _setTextItems,
 } = require('./setup.js');
-const {dummy} = require('./utils.js');
+const {dummy, optParamVal} = require('./utils.js');
 
 const assert = require('assert');
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const sinon = require('sinon');
 
-const optParamVal = undefined; // value used when a parameter is optional but passed to a function to allow generic test cases
 const jsonStringifyIndents = [optParamVal, null, '', -2, 2, '  '];
 const jsonStringData = (valid) => valid ? `{"x":"${dummy()}"}` : dummy();
 
@@ -45,7 +44,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
             beforeEach(function () {
                 Nvc.config = config = Nvc.getBaseConfig();
             });
-            it('should set config correctly when type = fsm', () => {
+            it('should set config correctly when type=fsm', () => {
                 Nvc.setConfigFor('fsm');
                 assert.strictEqual(config.canvas.acceptLinks, true);
                 assert.strictEqual(config.canvas.acceptSelfLinks, true);
@@ -58,7 +57,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 // config should not diverge from the base config which is initialized for use with finite state machines
                 assert.deepStrictEqual(config, Nvc.getBaseConfig());
             });
-            it('should set config correctly when type = digraph', () => {
+            it('should set config correctly when type=digraph', () => {
                 Nvc.setConfigFor('digraph');
                 assert.strictEqual(config.canvas.acceptLinks, true);
                 assert.strictEqual(config.canvas.acceptSelfLinks, true);
@@ -69,7 +68,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(config.links.arrowHeadAtDstOverridable, false);
                 assert.strictEqual(config.nodes.canBeAcceptStates, false);
             });
-            it('should set config correctly when type = undigraph', () => {
+            it('should set config correctly when type=undigraph', () => {
                 Nvc.setConfigFor('undigraph');
                 assert.strictEqual(config.canvas.acceptLinks, true);
                 assert.strictEqual(config.canvas.acceptSelfLinks, true);
@@ -80,7 +79,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(config.links.arrowHeadAtDstOverridable, false);
                 assert.strictEqual(config.nodes.canBeAcceptStates, false);
             });
-            it('should set config correctly when type = nodesonly', () => {
+            it('should set config correctly when type=nodesonly', () => {
                 Nvc.setConfigFor('nodesonly');
                 assert.strictEqual(config.canvas.acceptLinks, false);
                 assert.strictEqual(config.canvas.acceptSelfLinks, false);

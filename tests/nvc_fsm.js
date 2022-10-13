@@ -5,9 +5,6 @@
 */
 
 require('./setup.js');
-require('../src/nvc_fsm.js');
-
-const assert = require('assert');
 
 (function() {
     (function() {
