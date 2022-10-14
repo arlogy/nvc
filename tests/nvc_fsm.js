@@ -4,7 +4,8 @@
  Copyright (c) 2022 https://github.com/arlogy
 */
 
-require('./setup.js');
+const {loadNvcScript} = require('./setup.js');
+loadNvcScript('fsm');
 
 (function() {
     (function() {

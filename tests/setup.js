@@ -4,39 +4,54 @@
  Copyright (c) 2022 https://github.com/arlogy
 */
 
-if(!global.Jsu) {
-    global.Jsu = {}; // define Jsu first so that each Nvc script can reference it as needed
-    const Jsu = global.Jsu;
-    Jsu.Common = require('../src/jsu_common.js');
-    Jsu.CsvParser = require('../src/jsu_csv_parser.js');
-    Jsu.Event = require('../src/jsu_event.js');
-    Jsu.Latex = require('../src/jsu_latex.js');
-}
-require('../src/nvc.js');
-require('../src/nvc_fsm.js');
+// first define the Jsu object so that it can be referenced as needed
+if(!global.Jsu) global.Jsu = {};
 
-const cloneDeep = Jsu.Common.cloneDeep;
+const requireNvcCore = () => {
+    if(!Jsu.Common) Jsu.Common = require('../src/jsu_common.js');
+    if(!Jsu.Event) Jsu.Event = require('../src/jsu_event.js');
+    if(!Jsu.Latex) Jsu.Latex = require('../src/jsu_latex.js');
+    require('../src/nvc.js');
+};
+
+const requireNvcFsm = () => {
+    requireNvcCore();
+    if(!Jsu.Common) Jsu.Common = require('../src/jsu_common.js');
+    if(!Jsu.CsvParser) Jsu.CsvParser = require('../src/jsu_csv_parser.js');
+    if(!Jsu.Latex) Jsu.Latex = require('../src/jsu_latex.js');
+    require('../src/nvc_fsm.js');
+};
+
+const loadNvcScript = (scriptId) => {
+    switch(scriptId) {
+        case 'core': requireNvcCore(); break;
+        case 'fsm': requireNvcFsm(); break;
+        default: throw new RangeError('Unable to load Nvc script with ID "' + scriptId + '"');
+    }
+    return backupNvc();
+};
+
 const cloneCustomImpl = (value, cache) => { // designed for cloneGetSet()
     const copy = {};
-    cache.add(value, copy); // cache data before the recursive cloneDeep() calls below
+    cache.add(value, copy); // cache data before the recursive Jsu.Common.cloneDeep() calls below
     for(const prop in value) {
         const desctor = Object.getOwnPropertyDescriptor(value, prop);
         if(desctor !== undefined && (desctor.get || desctor.set)) { // accessor descriptor
             Object.defineProperty(copy, prop, desctor);
             if(desctor.get) {
                 // "value[prop]" is similar but more concise than "desctor.get.apply(value)"
-                copy[prop + '_getterInitialValue_fkqh7NvXjG'] = cloneDeep(value[prop], cache, cloneCustomImpl);
+                copy[prop + '_getterInitialValue_fkqh7NvXjG'] = Jsu.Common.cloneDeep(value[prop], cache, cloneCustomImpl);
             }
         }
         else {
-            copy[prop] = cloneDeep(value[prop], cache, cloneCustomImpl);
+            copy[prop] = Jsu.Common.cloneDeep(value[prop], cache, cloneCustomImpl);
         }
     }
     return copy;
 };
 // clones object while preserving get/set accessors; this is one possible
 // implementation
-const cloneGetSet = (obj) => cloneDeep(obj, null, cloneCustomImpl);
+const cloneGetSet = (obj) => Jsu.Common.cloneDeep(obj, null, cloneCustomImpl);
 
 // removes extra properties added to an object created using cloneGetSet()
 const rmExtraGetSetProps = (obj) => {
@@ -85,7 +100,9 @@ const restoreGetSet = (backup, target) => {
 //     - Nvc.myProp1.myProp2.myPropN = sinon.stub().callsFake(NvcBackup.myProp1.myProp2.myPropN);
 //           this is another approach when we want a function to call its
 //           original implementation
-const NvcBackup = cloneGetSet(Nvc);
+let NvcBackup = {};
+
+const backupNvc = () => { NvcBackup = cloneGetSet(Nvc); return NvcBackup; };
 
 const _setCanvas = (val) => { Nvc.setCanvasObj(val); };
 
@@ -129,7 +146,7 @@ afterEach(() => {
 });
 
 module.exports = {
-    NvcBackup,
+    loadNvcScript,
     _setCanvas,
     _setAlphabetContainer,
     _getNodes, _setNodes,

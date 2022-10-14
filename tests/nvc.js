@@ -5,9 +5,11 @@
 */
 
 const {
-    NvcBackup, _setCanvas, _setAlphabetContainer, _getNodes, _setNodes,
+    loadNvcScript,
+    _setCanvas, _setAlphabetContainer, _getNodes, _setNodes,
     _getLinks, _setLinks, _getTextItems, _setTextItems,
 } = require('./setup.js');
+const NvcBackup = loadNvcScript('core');
 const {dummy, optParamVal} = require('./utils.js');
 
 const assert = require('assert');
