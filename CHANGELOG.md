@@ -21,7 +21,7 @@ code. They were initiated in 2020 and refined over time, mainly in 2020 and
 
 - Refactoring
     - Refactor the source code to create a documented and tested API for
-    third-party consumers. With that in mind, only new features and bug fixes
+    third-party consumers. With that in mind, only bug fixes and new features
     will be mentionned below, not the functions added, removed or refactored for
     example.
 - Bug fixes
@@ -40,6 +40,8 @@ code. They were initiated in 2020 and refined over time, mainly in 2020 and
     example) and `$` becomes `\$`.
 - New features
     - Add support for graphs in general, not just finite state machines.
+    - Add and allow customization of visual attributes for each canvas item.
+    These include opacity, text color and border color for example.
     - Add support for advanced caret/cursor positioning on the selected canvas
     item. This allows the cursor to be moved using the left/right arrow keys or
     the home/end keys (to move it to the beginning or end). This feature also
@@ -52,8 +54,8 @@ code. They were initiated in 2020 and refined over time, mainly in 2020 and
     - Introduce the FSM alphabet container and attach it to the canvas
     accordingly when resizing the window. This container is useful when creating
     a FSM for theoretical purposes.
-    - Only accept characters that can be inserted into the canvas, during
-    import/export for example.
+    - Ignore characters that cannot be typed in the canvas during import/export
+    for example.
     - Automatically move nodes and text items into the visible area of the
     canvas so that the user never has to find them. This happens when the canvas
     page is loaded.

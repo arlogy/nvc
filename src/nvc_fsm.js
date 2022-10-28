@@ -237,6 +237,10 @@ Nvc.fsm = (function() {
         var SelfLink = nvcTypes.SelfLink;
 
         var fsmObj = getEmptyFsmModel();
+        var fsmErrors = fsmObj.errors;
+        var fsmCanvas = fsmObj.canvas;
+        var fsmStates = fsmObj.states;
+        var fsmTransi = fsmObj.transitions;
 
         var i = 0;
 
@@ -247,35 +251,35 @@ Nvc.fsm = (function() {
             fsmObj.alphabet = alphabetData.matchArr;
         }
         else {
-            fsmObj.errors.push(...alphabetData.errors);
+            fsmErrors.push(...alphabetData.errors);
         }
 
         for(i = 0; i < nodes.length; i++) {
             var node = nodes[i];
             var stateId = processText(node.text);
             if(stateId !== '') {
-                if(fsmObj.canvas.nodes[stateId] === undefined) {
-                    fsmObj.canvas.nodes[stateId] = node;
-                    fsmObj.states.all.push(stateId);
+                if(fsmCanvas.nodes[stateId] === undefined) {
+                    fsmCanvas.nodes[stateId] = node;
+                    fsmStates.all.push(stateId);
                     if(node.isInitialState) {
-                        fsmObj.states.initial.push(stateId);
+                        fsmStates.initial.push(stateId);
                     }
                     if(node.isAcceptState) {
-                        fsmObj.states.accept.push(stateId);
+                        fsmStates.accept.push(stateId);
                     }
                 }
                 else {
-                    fsmObj.errors.push("State '{0}' is declared more than once.".format(stateId));
+                    fsmErrors.push("State '{0}' is declared more than once.".format(stateId));
                 }
             }
             else {
-                fsmObj.errors.push('The ID of a state is empty.');
+                fsmErrors.push('The ID of a state is empty.');
             }
         }
 
         if(ensureInitialState) {
-            if(fsmObj.states.initial.length === 0) {
-                fsmObj.errors.push('No state has been marked initial.');
+            if(fsmStates.initial.length === 0) {
+                fsmErrors.push('No state has been marked initial.');
             }
         }
 
@@ -288,35 +292,35 @@ Nvc.fsm = (function() {
                 var transitionState2Id = processText(linkNodes[1].text);
                 var transitionInputData = parseFsmTransitionInput(linkText);
                 if(transitionInputData.errors.length === 0) {
-                    if(fsmObj.transitions.all[transitionState1Id] === undefined)
-                        fsmObj.transitions.all[transitionState1Id] = {};
-                    var transitionObj = fsmObj.transitions.all[transitionState1Id];
+                    if(fsmTransi.all[transitionState1Id] === undefined)
+                        fsmTransi.all[transitionState1Id] = {};
+                    var transitionObj = fsmTransi.all[transitionState1Id];
                     for(var j = 0; j < transitionInputData.matchArr.length; j++) {
                         var input = transitionInputData.matchArr[j];
                         if(alphabetData.matchMap[input]) {
-                            if(fsmObj.canvas.links._set(transitionState1Id, input, transitionState2Id, link)) {
+                            if(fsmCanvas.links._set(transitionState1Id, input, transitionState2Id, link)) {
                                 if(transitionObj[input] === undefined)
                                     transitionObj[input] = [];
                                 transitionObj[input].push(transitionState2Id);
                             }
                             else {
-                                fsmObj.errors.push(
+                                fsmErrors.push(
                                     "Transition ('{0}', '{1}', '{2}') is duplicated."
                                    .format(transitionState1Id, input, transitionState2Id)
                                 );
                             }
                         }
                         else {
-                            fsmObj.errors.push("Transition input '{0}' is not declared in alphabet.".format(input));
+                            fsmErrors.push("Transition input '{0}' is not declared in alphabet.".format(input));
                         }
                     }
                 }
                 else {
-                    fsmObj.errors.push(
+                    fsmErrors.push(
                         "Transition ('{0}', '{1}', '{2}') has an invalid comma-separated string."
                        .format(transitionState1Id, linkText, transitionState2Id)
                     );
-                    fsmObj.errors.push(...transitionInputData.errors.map(function(err) { return '    ' + err; }));
+                    fsmErrors.push(...transitionInputData.errors.map(function(err) { return '    ' + err; }));
                 }
             }
         }
