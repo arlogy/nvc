@@ -16,8 +16,8 @@ and `subscript.pattern.value` respectively.
 
 *Starting from `fsm.js` downloaded from the [website](https://madebyevan.com/fsm/)
 showcasing the original project, here are the major changes made to the source
-code. They were initiated in 2020 and refined over time, mainly in 2020 and
-2022 during spare time.*
+code. They took place in 2020 and have been refined over time, mainly in 2022
+during spare time.*
 
 - Refactoring
     - Refactor the source code to create a documented and tested API for
