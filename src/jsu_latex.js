@@ -24,7 +24,7 @@ function(nodejs) {
     // the elements in the object/array is important for the resulting pattern
     // to be valid.
 
-    var JsuCmn = undefined;
+    var JsuCmn;
     if(nodejs) {
         JsuCmn = require('./jsu_common.js');
     }
@@ -50,7 +50,7 @@ function(nodejs) {
         var greekPatterns = greekLetterNames.map(function(name) {
             return ['\\\\' + name, '\\\\' + name.toLowerCase()];
         });
-        greekPatterns = [].concat(...greekPatterns); // flatten array
+        greekPatterns = greekPatterns.reduce(function(acc, val) { return acc.concat(val); }, []); // flatten array
 
         return {
             'greekLetter': {
@@ -200,8 +200,8 @@ function(nodejs) {
 
     API.rewriteKnownLatexCommands = function(str, patterns) {
         if(!patterns) patterns = [];
-        patterns = patterns.slice(0); // shallow copy
-        patterns.push(...latexShortcutData.greekLetter.pattern.list);
+        patterns = patterns.slice(0); // shallow copy so as not to modify the original object
+        Array.prototype.push.apply(patterns, latexShortcutData.greekLetter.pattern.list); // push each known pattern
         patterns.sort(function (a, b) { return b.localeCompare(a); }); // sort in descending order (see regex-alternation-note)
         return API.rewriteLatexCommands(str, patterns.join('|'));
     };
@@ -333,7 +333,7 @@ function(nodejs) {
         var s2 = convert(nextStrVal) + convert(deletedStr);
         if(s1.length !== s2.length) { // see (1) below
             var obj = API.findLatexShortcutSpecialCharsAndIndex(nextStrBeforeCursor); // see (2) below
-            var k = Math.max(...Object.keys(obj));
+            var k = Math.max.apply(null, Object.keys(obj));
             nextCursorPos = cursorPos - nextStrBeforeCursor.substring(k).length;
         }
 

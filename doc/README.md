@@ -15,7 +15,7 @@ for a quick start and also extends the `Nvc` object with new properties.
 
 nvc depends on [jsu](https://github.com/arlogy/jsu) which is also built with
 older browsers in mind and was originally part of the project. The version used
-is 1.4.0.
+is 1.5.0.
 
 ## Examples
 

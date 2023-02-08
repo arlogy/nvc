@@ -43,7 +43,7 @@ function() {
     //     for example when cookies are blocked. So access to the storage must
     //     be wrapped in a try-catch block.
 
-    // --- UI ---
+    // --- CSS Visibility ---
 
     API.setEltVisible = function(elt, vis, dsp) {
         elt.style.display = vis ? (dsp && dsp !== 'none' ? dsp : 'revert')
@@ -63,11 +63,12 @@ function() {
 
     API.isBoolean = function(value) { return typeof value === 'boolean'; };
 
-    API.isNumber = Number.isFinite || function(value) { // polyfill for Number.isFinite()
-        return typeof value === 'number' && isFinite(value);
-        // Number.isFinite() is used because we want to define a number as a
-        // finite value (strings excluded)
+    API._getIsNumberImpl = function() { // introduced so that all implementations can be easily tested
+        return Number.isFinite || function(value) { // polyfill for Number.isFinite()
+            return typeof value === 'number' && isFinite(value);
+        }; // Number.isFinite() is used because we want to define a number as a finite value (strings excluded)
     };
+    API.isNumber = API._getIsNumberImpl();
 
     API.isNumberAlike = function(value) {
         var tov = typeof value;
@@ -76,9 +77,12 @@ function() {
 
     API.isString = function(value) { return typeof value === 'string' || value instanceof String; };
 
-    API.isArray = Array.isArray || function(arg) { // polyfill for Array.isArray()
-        return Object.prototype.toString.call(arg) === '[object Array]';
+    API._getIsArrayImpl = function() { // introduced so that all implementations can be easily tested
+        return Array.isArray || function(value) { // polyfill for Array.isArray()
+            return Object.prototype.toString.call(value) === '[object Array]';
+        };
     };
+    API.isArray = API._getIsArrayImpl();
 
     API.isCssColor = function(value) {
         return typeof CSS !== 'undefined' && CSS.supports ? CSS.supports('color', value) : null;
@@ -223,30 +227,30 @@ function() {
                 return value;
 
             case 'symbol': {
-                var copy = cache.get(value);
-                return copy !== undefined ? copy : cache.add(value, Symbol(value.description));
+                var copy1 = cache.get(value);
+                return copy1 !== undefined ? copy1 : cache.add(value, Symbol(value.description));
             }
 
-            case 'object': {
+            default: { // case 'object'
                 if(value === null) return value;
 
-                var copy = cache.get(value);
-                if(copy !== undefined) return copy;
+                var copy2 = cache.get(value);
+                if(copy2 !== undefined) return copy2;
                 if(value instanceof Boolean) return cache.add(value, new Boolean(value.valueOf()));
                 if(value instanceof Date) return cache.add(value, new Date(value.valueOf()));
                 if(value instanceof Number) return cache.add(value, new Number(value.valueOf()));
                 if(value instanceof String) return cache.add(value, new String(value.valueOf()));
 
-                var i = undefined;
+                var i = -1;
                 if(_isArray(value)) {
-                    copy = [];
-                    cache.add(value, copy); // cache data before the recursive _cloneDeep() calls below
+                    copy2 = [];
+                    cache.add(value, copy2); // cache data before the recursive _cloneDeep() calls below
                     var valueLen = value.length;
                     for(i = 0; i < valueLen; i++) {
-                        copy.push(_cloneDeep(value[i], cache, cloneCustomImpl));
+                        copy2.push(_cloneDeep(value[i], cache, cloneCustomImpl));
                     }
                 }
-                else if(cloneCustomImpl && ((copy = cloneCustomImpl(value, cache)) !== undefined)) {
+                else if(cloneCustomImpl && ((copy2 = cloneCustomImpl(value, cache)) !== undefined)) {
                     // nothing to do because value is already cloned
                 }
                 else {
@@ -256,20 +260,17 @@ function() {
                     //     e.g. {x:3, y:{}, z:[null, {}, Symbol()]}
                     // all the JavaScript built-in objects that one might want to support can be found at
                     //     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
-                    copy = {};
-                    cache.add(value, copy); // cache data before the recursive _cloneDeep() calls below
+                    copy2 = {};
+                    cache.add(value, copy2); // cache data before the recursive _cloneDeep() calls below
                     var valueKeys = Object.keys(value);
                     var valueKeysLen = valueKeys.length;
                     for(i = 0; i < valueKeysLen; i++) {
                         var prop = valueKeys[i];
-                        copy[prop] = _cloneDeep(value[prop], cache, cloneCustomImpl);
+                        copy2[prop] = _cloneDeep(value[prop], cache, cloneCustomImpl);
                     }
                 }
-                return copy;
+                return copy2;
             }
-
-            default: // will not be reached but retained anyway
-                return value;
         }
     }
 
