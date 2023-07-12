@@ -184,7 +184,7 @@ function() {
                         case lineSeps.indexOf(matchStr) !== -1: this._saveNewLine(); this._currState = 'q0'; lineSepRead = true; break;
                         default:
                             this._saveNewWarning(CsvParser._getUnescapedDelimiterInfo(this._records.length + 1, fieldDel, matchStr));
-                            this._currMatch += fieldDel + matchStr; this._curState = 'q2'; break;
+                            this._currMatch += fieldDel + matchStr; this._currState = 'q2'; break;
                     }
                     break;
 
