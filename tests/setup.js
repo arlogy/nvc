@@ -39,7 +39,7 @@ const cloneCustomImpl = (value, cache) => { // designed for cloneGetSet()
         if(desctor !== undefined && (desctor.get || desctor.set)) { // accessor descriptor
             Object.defineProperty(copy, prop, desctor);
             if(desctor.get) {
-                // "value[prop]" is similar but more concise than "desctor.get.apply(value)"
+                // "value[prop]" is used because it is similar and more concise than "desctor.get.apply(value)"
                 copy[prop + '_getterInitialValue_fkqh7NvXjG'] = Jsu.Common.cloneDeep(value[prop], cache, cloneCustomImpl);
             }
         }
@@ -49,8 +49,8 @@ const cloneCustomImpl = (value, cache) => { // designed for cloneGetSet()
     }
     return copy;
 };
-// clones object while preserving get/set accessors; this is one possible
-// implementation
+// clones object while preserving the get/set accessors of its own (direct, non
+// inherited) properties; this is one possible implementation
 const cloneGetSet = (obj) => Jsu.Common.cloneDeep(obj, null, cloneCustomImpl);
 
 // removes extra properties added to an object created using cloneGetSet()
@@ -66,8 +66,8 @@ const rmExtraGetSetProps = (obj) => {
     }
 };
 
-// restores properties from backup to target where backup is a clone (and a
-// backup) of target created using cloneGetSet(target)
+// restores properties from backup to target, where backup is a clone of target
+// created using cloneGetSet(target)
 const restoreGetSet = (backup, target) => {
     for(const prop in target) {
         const desctor = Object.getOwnPropertyDescriptor(target, prop);

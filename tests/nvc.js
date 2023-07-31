@@ -10,14 +10,13 @@ const {
     _getLinks, _setLinks, _getTextItems, _setTextItems,
 } = require('./setup.js');
 const NvcBackup = loadNvcScript('core');
-const {dummy, optParamVal} = require('./utils.js');
+const {dummy, optParamVal, jsonStringifyIndents} = require('./utils.js');
 
 const assert = require('assert');
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const sinon = require('sinon');
 
-const jsonStringifyIndents = [optParamVal, null, '', -2, 2, '  '];
 const jsonStringData = (valid) => valid ? `{"x":"${dummy()}"}` : dummy();
 
 // useful to check calls to JavaScript addEventListener() and removeEventListener() functions
@@ -140,7 +139,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 {},
                 {canvas:dummy()}, {fsmAlphabetContainer:dummy()}, {canvas:dummy(), fsmAlphabetContainer:dummy()},
             ]) {
-                it(`should behave correctly when options=${JSON.stringify(options)}`, () => {
+                it(`should behave as expected when options=${JSON.stringify(options)}`, () => {
                     for(const canvasIsSet of [true, false]) {
                         for(const fsmAlphabetContainer of [optParamVal, null, dummy()]) {
                             checkImpl(canvasIsSet, fsmAlphabetContainer, options);
@@ -188,17 +187,17 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 checkAddRemEvtArgs(documentListener, ['keydown', 'keyup', 'keypress']);
                 documentListener.restore();
             };
-            it('should behave correctly when canvas and fsmAlphabetContainer are not set', () => {
+            it('should behave as expected when canvas and fsmAlphabetContainer are not set', () => {
                 checkImpl(false, false, false);
             });
-            it('should behave correctly when either canvas or fsmAlphabetContainer is set', () => {
+            it('should behave as expected when either canvas or fsmAlphabetContainer is set', () => {
                 const setContainer = false;
                 checkImpl(true, false, setContainer);
                 checkImpl(false, true, setContainer);
                 checkImpl(true, true, setContainer);
                 checkImpl(false, false, true);
             });
-            it('should behave correctly when both canvas and fsmAlphabetContainer are set', () => {
+            it('should behave as expected when both canvas and fsmAlphabetContainer are set', () => {
                 checkImpl(true, true, true);
             });
         });
@@ -245,17 +244,17 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(draw.calledAfter(documentListener), true);
                 documentListener.restore();
             };
-            it('should behave correctly when canvas and fsmAlphabetContainer are not set', () => {
+            it('should behave as expected when canvas and fsmAlphabetContainer are not set', () => {
                 checkImpl(false, false, false);
             });
-            it('should behave correctly when either canvas or fsmAlphabetContainer is set', () => {
+            it('should behave as expected when either canvas or fsmAlphabetContainer is set', () => {
                 const setContainer = false;
                 checkImpl(true, false, setContainer);
                 checkImpl(false, true, setContainer);
                 checkImpl(true, true, setContainer);
                 checkImpl(false, false, true);
             });
-            it('should behave correctly when both canvas and fsmAlphabetContainer are set', () => {
+            it('should behave as expected when both canvas and fsmAlphabetContainer are set', () => {
                 checkImpl(true, true, true);
             });
         });
@@ -269,7 +268,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(Nvc.getCanvasObj(), canvas);
             };
             for(const canvas of [undefined, null, dummy()]) {
-                it(`should behave correctly when canvas=${canvas}`, () => {
+                it(`should behave as expected when canvas=${canvas}`, () => {
                     checkImpl(canvas);
                 });
             }
@@ -328,7 +327,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 {height:-10.99}, {height:-10}, {height:10}, {height:10.99}, {height:'-10.99%'}, {height:'-10%'}, {height:'10%'}, {height:'10.99%'}, {height:'-10.99'}, {height:'-10'}, {height:'10'}, {height:'10.99'}, {height:'neither a number nor a suffixed value'},
                 {width:10, height:20}, {width:-10, height:-20}, {width:10, height:'x'}, {width:'x', height:10}, {width:'x', height:'y'},
             ]) {
-                it(`should behave correctly when options=${JSON.stringify(options)}`, () => {
+                it(`should behave as expected when options=${JSON.stringify(options)}`, () => {
                     for(const screenObj of [undefined, null, {}, {availWidth}, {availHeight}, {availWidth, availHeight}]) {
                         checkImpl(options, screenObj);
                     }
@@ -351,7 +350,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(retVal, setCanvasObj.getCall(0).returnValue);
             };
             for(const canvasIsSuccessfullySet of [true, false]) {
-                it(`should behave correctly when canvasIsSuccessfullySet=${canvasIsSuccessfullySet}`, () => {
+                it(`should behave as expected when canvasIsSuccessfullySet=${canvasIsSuccessfullySet}`, () => {
                     checkImpl(canvasIsSuccessfullySet);
                 });
             }
@@ -365,7 +364,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(Nvc.getFsmAlphabetContainerObj(), fsmAlphabetContainer);
             };
             for(const fsmAlphabetContainer of [undefined, null, dummy()]) {
-                it(`should behave correctly when fsmAlphabetContainer=${fsmAlphabetContainer}`, () => {
+                it(`should behave as expected when fsmAlphabetContainer=${fsmAlphabetContainer}`, () => {
                     checkImpl(fsmAlphabetContainer);
                 });
             }
@@ -421,14 +420,14 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     }
                 }
             };
-            it('should behave correctly when canvas is not set and/or fsmAlphabetContainer is not set', () => {
+            it('should behave as expected when canvas is not set and/or fsmAlphabetContainer is not set', () => {
                 for(const options of [optParamVal, null, dummy()]) {
                     checkImpl(false, true, options);
                     checkImpl(true, false, options);
                     checkImpl(false, false, options);
                 }
             });
-            it('should behave correctly when both canvas and fsmAlphabetContainer are set', () => {
+            it('should behave as expected when both canvas and fsmAlphabetContainer are set', () => {
                 for(const options of [
                     optParamVal, null,
                     {},
@@ -500,7 +499,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     });
                 }
             };
-            it('should behave correctly when fsmAlphabetContainer is not set', () => {
+            it('should behave as expected when fsmAlphabetContainer is not set', () => {
                 for(const options of [
                     optParamVal, null,
                     {},
@@ -509,7 +508,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     checkImpl(false, options);
                 }
             });
-            it('should behave correctly otherwise', () => {
+            it('should behave as expected otherwise', () => {
                 for(const options of [
                     optParamVal, null,
                     {},
@@ -1077,7 +1076,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 {textItems:[]},
                 {textItems:[dummy(), dummy()]},
             ]) {
-                it(`should bahave correctly when obj=${JSON.stringify(obj)}`, () => {
+                it(`should bahave as expected when obj=${JSON.stringify(obj)}`, () => {
                     for(const jsonInvalid of [true, false]) {
                         for(const linkCanBeInserted of [true, false]) {
                             checkImpl(obj, jsonInvalid, linkCanBeInserted);
