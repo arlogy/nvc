@@ -330,7 +330,7 @@ Nvc.fsm = (function() {
 
     // Sorts a FSM model if it is valid, does nothing otherwise. Useful when
     // displaying a FSM to the user for example. Note that the model is modified
-    // directly, but it is also returned by this function.
+    // directly during sorting and is always returned by this function.
     //     - model: the FSM model to sort; must have been initialized according
     //       to buildFsmModel(); see information below on how it is sorted.
     //           - The alphabet is sorted in ascending order.
@@ -341,21 +341,23 @@ Nvc.fsm = (function() {
     //                 that the traversal order of the 'for ... in' statement is
     //                 either implementation-specific or defined by recent
     //                 versions of the ECMAScript specification. So instead of
-    //                 iterating over 'transitions.all' which would not
+    //                 iterating over 'transitions.all', which wouldn't
     //                 necessarily preserve the order in 'states.all', one might
-    //                 want to loop over 'states.all' instead and only look
+    //                 sometimes want to loop over 'states.all' and only look
     //                 entries up in 'transitions.all'.
     //           - No other properties are sorted.
-    //     - compareConvertedShortcuts: optional; indicates whether (when
-    //       sorting model) each entry must be compared as is or first converted
-    //       using JsuLtx.convertLatexShortcuts(); defaults to true. When
-    //       enabled, the result is the same as if each array to be sorted
-    //       contained only LaTeX shortcuts converted using JsuLtx.convertLatexShortcuts().
+    //     - compareConvertedShortcuts: optional; indicates whether LaTeX
+    //       shortcuts must be compared as is when sorting model (this happens
+    //       when the option is disabled) or whether they should be converted
+    //       first using JsuLtx.convertLatexShortcuts() (this happens when the
+    //       option is enabled); defaults to true. When enabled, the result is
+    //       the same as if the LaTeX shortcuts to be sorted were all converted
+    //       using JsuLtx.convertLatexShortcuts().
     //           For your information, this option was introduced because
     //           sorting LaTeX shortcuts can give different results depending on
     //           whether the shortcuts are converted before or after sorting;
     //           see code sample below.
-    //               var alphabet = ['a', 'z', '0', '9', '_0', '_9', '\\epsilon', '\\gamma', '\\delta']; // contains unconverted LaTeX shortcuts
+    //               var alphabet = ['a', 'z', '0', '9', '_0', '_9', '\\epsilon', '\\gamma', '\\delta']; // all LaTeX shortcuts are raw (unconverted)
     //               var converter = JsuLtx.convertLatexShortcuts;
     //               console.log(alphabet);
     //               console.log(alphabet.map(converter).sort());
@@ -426,17 +428,17 @@ Nvc.fsm = (function() {
     //
     //     the other rows:
     //         describe what happens if an FSM alphabet entry is read from a state
-    //         so the first row will also be the last row if FSM does not contain any state
+    //         so the first row will also be the last row of the table if FSM does not contain any state
     //         here is what to know about the other rows
     //             row 2 indicates for example that the FSM does not leave q0 when b is read
     //             row 3 indicates for example that from q1 when c is read the FSM can go to state q0, q1 or q2
     //                 note that when several states can be reached, they are separated by ', '
-    //             row 4 indicates that no state can be reached when a, b or c is read
-    //                 note that an empty string is used when no state can be reached
+    //             row 4 indicates that no state can be reached when a, b or c is read from q2
+    //                 note that an empty string is used in corresponding columns when no state can be reached
     //             ...
     //             for each of these rows
     //                 column 1 (left empty in our example) uses symbols to indicate whether the state is an initial/accept state
-    //                 these symbols are determined using the getSymbols() function of the FSM model
+    //                 these symbols are determined using the getSymbolsString() function of the FSM model
     function buildFsmTransitionTableRows(model) {
         if(model.errors.length !== 0) return null;
 
@@ -492,78 +494,78 @@ Nvc.fsm = (function() {
     //     - indents: optional indentations similar to JSON.stringify() space
     //       parameter.
     function buildFsmTransitionTableHtml(model, htmlAttrs, indents) {
-        indents = JsuCmn.parseSpaceAsPerJsonStringify(indents);
+        // note: the 't' prefix in variable names means 'table'
 
+        indents = JsuCmn.parseSpaceAsPerJsonStringify(indents);
         var convert = convertFsmTransitionTableHtmlEntry;
 
         // set table content
 
         var invalidFsmMsg = '';
-        var tableRows = buildFsmTransitionTableRows(model);
-        var tableHead = [];
-        var tableBody = [];
-        if(tableRows !== null) {
+        var tRows = buildFsmTransitionTableRows(model);
+        var theadData = [];
+        var tbodyData = [];
+        if(tRows !== null) {
             var currRow = null;
             var j = 0;
 
             // first row
-            currRow = tableRows[0];
-            tableHead.push('<tr>');
+            currRow = tRows[0];
+            theadData.push('<tr>');
             for(j = 0; j < currRow.length; j++) {
-                tableHead.push('{0}<th>{1}</th>'.format(indents, convert(currRow[j])));
+                theadData.push('{0}<th>{1}</th>'.format(indents, convert(currRow[j])));
             }
-            tableHead.push('</tr>');
+            theadData.push('</tr>');
 
             // other rows if any
-            for(var i = 1; i < tableRows.length; i++) {
-                currRow = tableRows[i];
-                tableBody.push('<tr>');
+            for(var i = 1; i < tRows.length; i++) {
+                currRow = tRows[i];
+                tbodyData.push('<tr>');
                 for(j = 0; j < currRow.length; j++) {
-                    tableBody.push('{0}<td>{1}</td>'.format(indents, convert(currRow[j])));
+                    tbodyData.push('{0}<td>{1}</td>'.format(indents, convert(currRow[j])));
                 }
-                tableBody.push('</tr>');
+                tbodyData.push('</tr>');
             }
         }
         else {
             invalidFsmMsg = 'Finite state machine is invalid';
-            tableHead.push('<tr>', '{0}<th>{1}</th>'.format(indents, invalidFsmMsg), '</tr>');
-            tableBody.push('<tr>', '{0}<td>No content available</td>'.format(indents), '</tr>');
+            theadData.push('<tr>', '{0}<th>{1}</th>'.format(indents, invalidFsmMsg), '</tr>');
+            tbodyData.push('<tr>', '{0}<td>No content available</td>'.format(indents), '</tr>');
         }
 
-        var tableColsCount = tableHead.length - 2; // ignore opening <tr> and closing </tr>
-                                                   // note that we could have used tableBody.length - 2 instead
+        var tcolsCount = theadData.length - 2; // ignore opening <tr> and closing </tr>
+                                               // note that we could have used tbodyData.length - 2 instead
 
         // set HTML attributes for the table
-        //     from here on we use 't' as a prefix in variable names as shorthand for 'table'
 
         var tAttrs = '';
         var theadAttrs = '';
         var tbodyAttrs = '';
         if(htmlAttrs) {
-            if('table' in htmlAttrs) tAttrs = htmlAttrs.table;
-            if('thead' in htmlAttrs) theadAttrs = htmlAttrs.thead;
-            if('tbody' in htmlAttrs) tbodyAttrs = htmlAttrs.tbody;
+            if('table' in htmlAttrs) tAttrs = htmlAttrs.table.trim();
+            if('thead' in htmlAttrs) theadAttrs = htmlAttrs.thead.trim();
+            if('tbody' in htmlAttrs) tbodyAttrs = htmlAttrs.tbody.trim();
         }
 
         var tId = '';
         var tIdRegex = /id="([^"]+)"/; // regex is quite permissive for simplicity
         var tIdMatch = tAttrs.match(tIdRegex);
         if(tIdMatch !== null) {
-            tId = tIdMatch[1];
+            tId = tIdMatch[1]; // use the provided HTML ID
         }
         else {
             // set default values so that the output CSS is specific to the output table (values are picked with tIdRegex in mind)
             tId = 't_{0}'.format(Math.random().toString(32).substring(2)); // see (1) below
-            tAttrs = 'id="{0}"'.format(tId) + (tAttrs === '' ? '' : ' ') + tAttrs; // use tId but also the content already in tAttrs
+            tAttrs = 'id="{0}"'.format(tId) + (tAttrs !== '' ? ' ' : '') + tAttrs;
 
-            // (1) substring() to remove floating-point prefix (0.)
+            // (1) we use substring() to remove the floating-point prefix (0.)
             //     also note that the length of the generated value might be different between executions but we don't care
             //         indeed Math.random() could have generated strings of different length
         }
 
-        tAttrs = tAttrs.trim(); if(tAttrs !== '') tAttrs = ' ' + tAttrs;
-        theadAttrs = theadAttrs.trim(); if(theadAttrs !== '') theadAttrs = ' ' + theadAttrs;
-        tbodyAttrs = tbodyAttrs.trim(); if(tbodyAttrs !== '') tbodyAttrs = ' ' + tbodyAttrs;
+        if(tAttrs !== '') tAttrs = ' ' + tAttrs;
+        if(theadAttrs !== '') theadAttrs = ' ' + theadAttrs;
+        if(tbodyAttrs !== '') tbodyAttrs = ' ' + tbodyAttrs;
 
         // set output data
 
@@ -579,10 +581,10 @@ Nvc.fsm = (function() {
           + '<table{0}>\n'.format(tAttrs)
           + '{0}<caption>{1}</caption>\n'.format(indents, legend)
           + '{0}<thead{1}>\n'.format(indents, theadAttrs)
-          + '{0}{0}{1}\n'.format(indents, tableHead.join('\n'+indents+indents)) // we pass as many indents to join() as prepended to the string
+          + '{0}{0}{1}\n'.format(indents, theadData.join('\n'+indents+indents)) // we pass as many indents to join() as prepended to the string
           + '{0}</thead>\n'.format(indents)
           + '{0}<tbody{1}>\n'.format(indents, tbodyAttrs)
-          + '{0}{0}{1}\n'.format(indents, tableBody.join('\n'+indents+indents)) // we pass as many indents to join() as prepended to the string
+          + '{0}{0}{1}\n'.format(indents, tbodyData.join('\n'+indents+indents)) // we pass as many indents to join() as prepended to the string
           + '{0}</tbody>\n'.format(indents)
           + '</table>'
         ;
@@ -605,7 +607,7 @@ Nvc.fsm = (function() {
           + '{indents}{tSelector} th, {tSelector} td {\n'
           + '{indents}{indents}text-align: center;\n'
           + '{indents}{indents}color: #333;\n'
-          + '{indents}{indents}width: {0}%;\n'.format(100/tableColsCount)
+          + '{indents}{indents}width: {0}%;\n'.format(100/tcolsCount)
           + '{indents}}\n'
           + '{indents}{tSelector} thead th {\n'
           + '{indents}{indents}font-weight: normal;\n'
