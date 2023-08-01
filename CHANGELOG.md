@@ -2,15 +2,21 @@
 
 ## Next version
 
-Let's say `JsuLtx = Jsu.Latex`.
-
-- Add `Nvc.parseFsmCsv()`.
-- Remove `Nvc.convertLatexShortcuts()` which should be replaced with `JsuLtx.convertLatexShortcuts()`.
-- Remove `Nvc.getLatexShortcutPatterns()` which should be replaced with `JsuLtx.getLatexShortcutData()`
-accordingly: the `greekLetter.specialChar`, `greekLetter.valueSource`, `greekLetter.value`,
-`subscript.specialChar` and `subscript.value` properties become `greekLetter.patterns.specialChar`,
-`greekLetter.patterns.list`, `greekLetter.patterns.value`, `subscript.pattern.specialChar`
-and `subscript.pattern.value` respectively.
+- Update dependencies.
+    - Update jsu to a new version (see documentation): all changes to the
+    library must be taken into account when accessing its APIs explicitly, i.e.
+    not via nvc.
+- Add `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates)`.
+- Remove `Nvc.convertLatexShortcuts(text)` which should be replaced with `Jsu.Latex.convertLatexShortcuts(...)`.
+- Remove `Nvc.getLatexShortcutPatterns()` which should be replaced with `Jsu.Latex.getLatexShortcutData()`,
+keeping in mind the following for the returned object.
+    - Property `greekLetter.specialChar` becomes `greekLetter.pattern.specialChar`.
+    - Property `greekLetter.valueSource` becomes `greekLetter.pattern.list`.
+    - Property `greekLetter.value`       becomes `greekLetter.pattern.value`.
+    - Property `subscript.specialChar`   becomes `subscript.pattern.specialChar`.
+    - Property `subscript.value`         becomes `subscript.pattern.value`.
+- Update `Nvc.buildFsmTransitionTableHtml(model, htmlAttrs, indents)`: the
+attributes provided in `htmlAttrs` will always be trimmed before use.
 - Update `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates, errorPrefix)`
 to `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates)` for more explicit
 error messages without using a prefix string.
