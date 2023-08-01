@@ -40,6 +40,10 @@ Nvc.fsm = (function() {
                             //         especially since there are no duplicate keys in the object unlike in the array
         };
 
+        var rErrors = retVal.errors;
+        var rMatchArr = retVal.matchArr;
+        var rMatchMap = retVal.matchMap;
+
         var JsuCsvPsr = Jsu.CsvParser;
 
         if(allowFullBlanks === undefined) allowFullBlanks = false;
@@ -51,7 +55,7 @@ Nvc.fsm = (function() {
 
         var blankInput = str.trim() === '';
         if(blankInput && !allowFullBlanks) {
-            retVal.errors.push('The entire string is empty or contains only whitespaces');
+            rErrors.push('The entire string is empty or contains only whitespaces');
         }
 
         var fieldSeparators = (function() {
@@ -65,9 +69,7 @@ Nvc.fsm = (function() {
         var parser = new JsuCsvPsr({'fieldDelimiter': '"', 'fieldSeparators': fieldSeparators, 'lineSeparators': ['\n']});
         parser.readChunk(str);
         parser.flush();
-        retVal.errors.push( // treat all parser warnings as errors
-            ...parser.getWarningsRef().map(function(w) { return w.message; })
-        );
+        parser.getWarningsRef().forEach(function(w) { rErrors.push(w.message); });
 
         var entries = [];
         var parserRecords = parser.getRecordsRef();
@@ -79,17 +81,17 @@ Nvc.fsm = (function() {
             var entry = entries[i];
 
             if(JsuLtx.convertLatexShortcuts(entry).length !== 1) {
-                retVal.errors.push("Symbol '{0}' is neither a character nor a LaTeX shortcut".format(entry));
+                rErrors.push("Symbol '{0}' is neither a character nor a LaTeX shortcut".format(entry));
             }
             else {
-                retVal.matchArr.push(entry);
-                if(retVal.matchMap[entry] === undefined) {
-                    retVal.matchMap[entry] = 1;
+                rMatchArr.push(entry);
+                if(rMatchMap[entry] === undefined) {
+                    rMatchMap[entry] = 1;
                 }
                 else {
-                    retVal.matchMap[entry]++;
-                    if(retVal.matchMap[entry] === 2 && !allowDuplicates) {
-                        retVal.errors.push("Symbol '{0}' is duplicated".format(entry));
+                    rMatchMap[entry]++;
+                    if(rMatchMap[entry] === 2 && !allowDuplicates) {
+                        rErrors.push("Symbol '{0}' is duplicated".format(entry));
                     }
                 }
             }
@@ -243,7 +245,7 @@ Nvc.fsm = (function() {
             fsmObj.alphabet = alphabetData.matchArr;
         }
         else {
-            fsmErrors.push(...alphabetData.errors.map(function(err) { return '[alphabet] ' + err; }));
+            alphabetData.errors.forEach(function(err) { fsmErrors.push('[alphabet] ' + err); });
         }
 
         for(i = 0; i < nodes.length; i++) {
@@ -312,7 +314,7 @@ Nvc.fsm = (function() {
                         "Transition ('{0}', '{1}', '{2}') has an invalid comma-separated string"
                        .format(transitionState1Id, linkText, transitionState2Id)
                     );
-                    fsmErrors.push(...transitionInputData.errors.map(function(err) { return '    ' + err; }));
+                    transitionInputData.errors.forEach(function(err) { fsmErrors.push('    ' + err); });
                 }
             }
         }
