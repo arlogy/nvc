@@ -28,9 +28,7 @@ Nvc.fsm = (function() {
     //       allowed in str; defaults to false; if falsy, an error is recorded
     //       (in the 'errors' property of the returned object) when a duplicate
     //       is matched.
-    //     - errorPrefix: optional; the generic prefix string to use when
-    //       generating error messages; defaults to the empty string.
-    function parseFsmCsv(str, allowFullBlanks, allowDuplicates, errorPrefix) {
+    function parseFsmCsv(str, allowFullBlanks, allowDuplicates) {
         var retVal = { // retVal referenced in above documentation to avoid duplicates
             'errors': [],   // possibly empty array of error messages
                             //     empty if the input string is successfully parsed
@@ -46,22 +44,14 @@ Nvc.fsm = (function() {
 
         if(allowFullBlanks === undefined) allowFullBlanks = false;
         if(allowDuplicates === undefined) allowDuplicates = false;
-        if(errorPrefix === undefined) errorPrefix = '';
-
-        var errPrefixColunned = '';
-        var errPrefixSpaced = '';
-        if(errorPrefix !== '') {
-            errPrefixColunned = errorPrefix + ': ';
-            errPrefixSpaced = errorPrefix + ' input ';
-        }
 
         // create a single line for CSV parsing, ignoring parser lineSeparators
-        // (and any other line breaks as per this function's documentation)
+        // and any other line breaks
         str = str.replace(/\r|\n/g, '');
 
         var blankInput = str.trim() === '';
         if(blankInput && !allowFullBlanks) {
-            retVal.errors.push(errPrefixColunned + 'The entire string is empty or contains only whitespaces.');
+            retVal.errors.push('The entire string is empty or contains only whitespaces');
         }
 
         var fieldSeparators = (function() {
@@ -72,22 +62,24 @@ Nvc.fsm = (function() {
             return seps;
         })();
 
-        var entries = [];
         var parser = new JsuCsvPsr({'fieldDelimiter': '"', 'fieldSeparators': fieldSeparators, 'lineSeparators': ['\n']});
         parser.readChunk(str);
         parser.flush();
-        if(parser.getRecordsRef().length !== 0) {
-            entries = parser.getRecordsRef()[0]; // get the only record (no need to copy the records using getRecordsCopy())
-        }
-        retVal.errors.push( // treat all warnings as errors
-            ...parser.getWarningsRef().map(function(w) { return errPrefixColunned + w.message; })
+        retVal.errors.push( // treat all parser warnings as errors
+            ...parser.getWarningsRef().map(function(w) { return w.message; })
         );
+
+        var entries = [];
+        var parserRecords = parser.getRecordsRef();
+        if(parserRecords.length !== 0) {
+            entries = parserRecords[0]; // get a reference to the parser's single record, for convenience
+        }
 
         for(var i = 0; i < entries.length; i++) {
             var entry = entries[i];
 
             if(JsuLtx.convertLatexShortcuts(entry).length !== 1) {
-                retVal.errors.push(errPrefixSpaced + "'{0}' is neither a character nor a LaTeX shortcut.".format(entry));
+                retVal.errors.push("Symbol '{0}' is neither a character nor a LaTeX shortcut".format(entry));
             }
             else {
                 retVal.matchArr.push(entry);
@@ -97,7 +89,7 @@ Nvc.fsm = (function() {
                 else {
                     retVal.matchMap[entry]++;
                     if(retVal.matchMap[entry] === 2 && !allowDuplicates) {
-                        retVal.errors.push(errPrefixSpaced + "'{0}' is duplicated.".format(entry));
+                        retVal.errors.push("Symbol '{0}' is duplicated".format(entry));
                     }
                 }
             }
@@ -107,38 +99,38 @@ Nvc.fsm = (function() {
     }
 
     function parseFsmAlphabet(str) {
-        return parseFsmCsv(str, true, false, 'Alphabet');
+        return parseFsmCsv(str, true, false);
     }
 
     function parseFsmTransitionInput(str) {
-        return parseFsmCsv(str, false, true, 'Transition');
+        return parseFsmCsv(str, false, true);
     }
 
     // Returns an object with several properties describing an empty FSM. These
     // properties can then be initialized to represent a non-empty FSM. Indeed,
     // this function was introduced as a starting point for buildFsmModel(). See
-    // detailed comments below on what to expect from the properties in a FSM
-    // model; this is to avoid redundant documentation.
+    // detailed comments in source code regarding what to expect from the
+    // properties of a FSM model; this is to avoid redundant documentation.
     function getEmptyFsmModel() {
         return {
-            // please note that when string values are added to the FSM model
+            // please note that when string values are used in the FSM model
             //     they might contain LaTeX shortcuts that require explicit conversion (using JsuLtx.convertLatexShortcuts() for example)
-            // the following data can be string values: error messages, FSM alphabet entries, state ids, etc.
+            // for example, these data can be string values: error messages, FSM alphabet entries, state IDs, etc.
 
             'errors': [],        // possibly empty array of error messages indicating whether the FSM is valid or not
 
-            // important note for the other properties below except 'getSymbols' which does not depend on any FSM model
+            // important note for the other properties below, except utility functions like 'getSymbols' which do not depend on any FSM model
             //     to avoid long explanations, the following documentation only indicates what to expect from a valid FSM
-            //     it is therefore necessary to check the validity of the FSM before accessing these properties
+            //     it is therefore necessary to check the validity of a FSM before accessing these properties
 
             'alphabet': [],      // possibly empty array of entries representing the FSM alphabet; contains no duplicates
 
             'states': {
-                'all': [],       // possibly empty array of state ids; contains all states and no duplicates
-                'initial': [],   // possibly empty array of state ids; contains only initial states and no duplicates
-                'accept': [],    // possibly empty array of state ids; contains only accept states and no duplicates
+                'all': [],       // possibly empty array of state IDs; contains all states and no duplicates
+                'initial': [],   // possibly empty array of state IDs; contains only initial states and no duplicates
+                'accept': [],    // possibly empty array of state IDs; contains only accept states and no duplicates
                 'getSymbols': function(initial, accept) { // returns an object providing textual symbols to visually represent the nature of a state
-                                                          // an empty string value for any property in the object means that no symbol is required
+                                                          // an empty string value for any property in the object means that no symbol should be used for that property
                     var retVal = { 'initial': '', 'accept': '' };
                     if(initial) retVal.initial = '->';
                     if(accept) retVal.accept = '*';
@@ -182,9 +174,9 @@ Nvc.fsm = (function() {
                                  //     1.   all[<from_state_id>]          yields undefined if there is no transition from the state
                                  //     2.   all[<from_state_id>]          yields a transition object if there is at least one transition from the state
                                  //     2.1. all[<from_state_id>][<input>] yields undefined if no state is reachable from the state when the input is read
-                                 //     2.2. all[<from_state_id>][<input>] yields the non-empty array of state ids reachable from the state when the input is read
+                                 //     2.2. all[<from_state_id>][<input>] yields the non-empty array of state IDs reachable from the state when the input is read
                                  //                                        the array does not contain duplicates
-                'get': function(fromStateId, input) { // returns the array of state ids that are reachable from a state when an input is read
+                'get': function(fromStateId, input) { // returns the array of state IDs that are reachable from a state when an input is read
                                                       //     an empty array instead of undefined is returned if no state can be reached
                     var transitionObj = this.all[fromStateId];
                     var destinationStates = transitionObj ? transitionObj[input] : [];
@@ -224,7 +216,7 @@ Nvc.fsm = (function() {
     //       defaults to true.
     // Once the model is created, it can be sorted using sortFsmModel().
     function buildFsmModel(ensureInitialState) {
-        // useful function to ensure at least the same transformation rule for all state ids
+        // useful function to ensure at least the same transformation rule for all state IDs
         function processText(text) { return text.trim(); }
 
         var nvcData = Nvc.getData();
@@ -251,7 +243,7 @@ Nvc.fsm = (function() {
             fsmObj.alphabet = alphabetData.matchArr;
         }
         else {
-            fsmErrors.push(...alphabetData.errors);
+            fsmErrors.push(...alphabetData.errors.map(function(err) { return '[alphabet] ' + err; }));
         }
 
         for(i = 0; i < nodes.length; i++) {
@@ -269,17 +261,17 @@ Nvc.fsm = (function() {
                     }
                 }
                 else {
-                    fsmErrors.push("State '{0}' is declared more than once.".format(stateId));
+                    fsmErrors.push("State '{0}' is declared more than once".format(stateId));
                 }
             }
             else {
-                fsmErrors.push('The ID of a state is empty.');
+                fsmErrors.push('The ID of a state is empty');
             }
         }
 
         if(ensureInitialState) {
             if(fsmStates.initial.length === 0) {
-                fsmErrors.push('No state has been marked initial.');
+                fsmErrors.push('No state has been marked initial');
             }
         }
 
@@ -305,19 +297,19 @@ Nvc.fsm = (function() {
                             }
                             else {
                                 fsmErrors.push(
-                                    "Transition ('{0}', '{1}', '{2}') is duplicated."
+                                    "Transition ('{0}', '{1}', '{2}') is duplicated"
                                    .format(transitionState1Id, input, transitionState2Id)
                                 );
                             }
                         }
                         else {
-                            fsmErrors.push("Transition input '{0}' is not declared in alphabet.".format(input));
+                            fsmErrors.push("Transition input '{0}' is not declared in alphabet".format(input));
                         }
                     }
                 }
                 else {
                     fsmErrors.push(
-                        "Transition ('{0}', '{1}', '{2}') has an invalid comma-separated string."
+                        "Transition ('{0}', '{1}', '{2}') has an invalid comma-separated string"
                        .format(transitionState1Id, linkText, transitionState2Id)
                     );
                     fsmErrors.push(...transitionInputData.errors.map(function(err) { return '    ' + err; }));
@@ -334,7 +326,7 @@ Nvc.fsm = (function() {
     //     - model: the FSM model to sort; must have been initialized according
     //       to buildFsmModel(); see information below on how it is sorted.
     //           - The alphabet is sorted in ascending order.
-    //           - All arrays of state ids are sorted in ascending order,
+    //           - All arrays of state IDs are sorted in ascending order,
     //             including those that can be retrieved using the 'transitions'
     //             property of the model.
     //                 As for the 'transitions' property of the model, be aware

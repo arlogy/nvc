@@ -11,6 +11,9 @@ accordingly: the `greekLetter.specialChar`, `greekLetter.valueSource`, `greekLet
 `subscript.specialChar` and `subscript.value` properties become `greekLetter.patterns.specialChar`,
 `greekLetter.patterns.list`, `greekLetter.patterns.value`, `subscript.pattern.specialChar`
 and `subscript.pattern.value` respectively.
+- Update `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates, errorPrefix)`
+to `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates)` for more explicit
+error messages without using a prefix string.
 
 ## 0.9.0 - 2022/09/03
 

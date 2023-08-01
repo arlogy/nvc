@@ -254,10 +254,10 @@ Nvc.quick = (function() {
     //       to Nvc.fsm.buildFsmModel().
     function outputFsmState(model) {
         if(model.errors.length === 0) {
-            outputText('Finite state machine is valid.');
+            outputText('Finite state machine is valid');
         }
         else {
-            var text = 'Finite state machine is not valid.'
+            var text = 'Finite state machine is not valid'
             for(var i = 0; i < model.errors.length; i++) {
                 text += '\n    - ' + JsuLtx.convertLatexShortcuts(model.errors[i]);
             }
