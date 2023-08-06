@@ -6,8 +6,11 @@
 
 const {
     loadNvcScript,
-    _setCanvas, _setAlphabetContainer, _getNodes, _setNodes,
-    _getLinks, _setLinks, _getTextItems, _setTextItems,
+    _setCanvas,
+    _getAlphabetFromData, _getAlphabetFromContainer, _setAlphabetContainer,
+    _getNodes, _setNodes,
+    _getLinks, _setLinks,
+    _getTextItems, _setTextItems,
 } = require('./setup.js');
 const NvcBackup = loadNvcScript('core');
 const {dummy, optParamVal, jsonStringifyIndents} = require('./utils.js');
@@ -18,13 +21,21 @@ const { JSDOM } = jsdom;
 const sinon = require('sinon');
 
 const jsonStringData = (valid) => valid ? `{"x":"${dummy()}"}` : dummy();
+(function() {
+    JSON.parse(jsonStringData(true));
+    assert.throws(() => JSON.parse(jsonStringData(false)), SyntaxError);
+})();
 
-// useful to check calls to JavaScript addEventListener() and removeEventListener() functions
-//     - addRemEvt: the function whose calls are to be checked; can be a sinon fake/spy/stub
-const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
-    assert.strictEqual(addRemEvt.callCount, firstArgs.length);
+// checks that the expected JavaScript events have been registered or removed
+// using addEventListener() or removeEventListener()
+//     - listenersManager: the function whose calls are to be checked and which
+//       is used to add/remove event listeners; should be a sinon fake/spy/stub
+//     - firstArgs: the list of the first arguments passed to listenersManager
+//       for each call
+const checkAddRemEvtArgs = (listenersManager, firstArgs) => {
+    assert.strictEqual(listenersManager.callCount, firstArgs.length);
     for(let i = 0; i < firstArgs.length; i++) {
-        const call = addRemEvt.getCall(i);
+        const call = listenersManager.getCall(i);
         assert.strictEqual(call.args.length, 2);
         assert.strictEqual(call.args[0], firstArgs[i]);
         assert.strictEqual(typeof call.args[1], 'function');
@@ -40,12 +51,45 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
     const JsuLtx = Jsu.Latex;
 
     (function() {
-        describe('setConfigFor()', () => {
-            let config = null;
-            beforeEach(function () {
-                Nvc.config = config = Nvc.getBaseConfig();
+        describe('getBaseConfig()', () => {
+            it('should return a new reference for each call', () => {
+                assert.strictEqual(Nvc.getBaseConfig() !== Nvc.getBaseConfig(), true);
             });
+            it('should not preserve changes to the returned object', () => {
+                const unchangedConfig = Nvc.getBaseConfig();
+                const changedConfig = Nvc.getBaseConfig();
+                for(const prop in changedConfig) delete changedConfig[prop];
+                assert.deepStrictEqual(Nvc.getBaseConfig(), unchangedConfig);
+            });
+            // no need to further test this function because changes to it that
+            // break tested behaviors will be reflected in corresponding test
+            // cases
+        });
+    })();
+
+    (function() {
+        describe('config', () => {
+            // no need to test this property because changes to it that break
+            // tested behaviors will be reflected in corresponding test cases
+        });
+    })();
+
+    (function() {
+        describe('setConfigFor()', () => {
+            const newConfig = (config) => { // creates a new config from a given one
+                const bconf = Nvc.getBaseConfig();
+                bconf.canvas.acceptLinks = config.canvas.acceptLinks;
+                bconf.canvas.acceptSelfLinks = config.canvas.acceptSelfLinks;
+                bconf.canvas.acceptStartLinks = config.canvas.acceptStartLinks;
+                bconf.links.arrowHeadAtSrc = config.links.arrowHeadAtSrc;
+                bconf.links.arrowHeadAtSrcOverridable = config.links.arrowHeadAtSrcOverridable;
+                bconf.links.arrowHeadAtDst = config.links.arrowHeadAtDst;
+                bconf.links.arrowHeadAtDstOverridable = config.links.arrowHeadAtDstOverridable;
+                bconf.nodes.canBeAcceptStates = config.nodes.canBeAcceptStates;
+                return bconf;
+            };
             it('should set config correctly when type=fsm', () => {
+                const config = Nvc.config;
                 Nvc.setConfigFor('fsm');
                 assert.strictEqual(config.canvas.acceptLinks, true);
                 assert.strictEqual(config.canvas.acceptSelfLinks, true);
@@ -55,10 +99,10 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(config.links.arrowHeadAtDst, true);
                 assert.strictEqual(config.links.arrowHeadAtDstOverridable, false);
                 assert.strictEqual(config.nodes.canBeAcceptStates, true);
-                // config should not diverge from the base config which is initialized for use with finite state machines
-                assert.deepStrictEqual(config, Nvc.getBaseConfig());
+                assert.deepStrictEqual(config, Nvc.getBaseConfig()); // the base config should be our final config because it is also initialized for use with FSMs
             });
             it('should set config correctly when type=digraph', () => {
+                const config = Nvc.config;
                 Nvc.setConfigFor('digraph');
                 assert.strictEqual(config.canvas.acceptLinks, true);
                 assert.strictEqual(config.canvas.acceptSelfLinks, true);
@@ -68,8 +112,10 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(config.links.arrowHeadAtDst, true);
                 assert.strictEqual(config.links.arrowHeadAtDstOverridable, false);
                 assert.strictEqual(config.nodes.canBeAcceptStates, false);
+                assert.deepStrictEqual(config, newConfig(config)); // only the above properties should have changed
             });
             it('should set config correctly when type=undigraph', () => {
+                const config = Nvc.config;
                 Nvc.setConfigFor('undigraph');
                 assert.strictEqual(config.canvas.acceptLinks, true);
                 assert.strictEqual(config.canvas.acceptSelfLinks, true);
@@ -79,8 +125,10 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(config.links.arrowHeadAtDst, false);
                 assert.strictEqual(config.links.arrowHeadAtDstOverridable, false);
                 assert.strictEqual(config.nodes.canBeAcceptStates, false);
+                assert.deepStrictEqual(config, newConfig(config)); // only the above properties should have changed
             });
             it('should set config correctly when type=nodesonly', () => {
+                const config = Nvc.config;
                 Nvc.setConfigFor('nodesonly');
                 assert.strictEqual(config.canvas.acceptLinks, false);
                 assert.strictEqual(config.canvas.acceptSelfLinks, false);
@@ -90,6 +138,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(config.links.arrowHeadAtDst, false);
                 assert.strictEqual(config.links.arrowHeadAtDstOverridable, false);
                 assert.strictEqual(config.nodes.canBeAcceptStates, false);
+                assert.deepStrictEqual(config, newConfig(config)); // only the above properties should have changed
             });
             it('should set fsmAlphabetContainer accordingly for all possible types', () => {
                 for(const type of ['fsm', 'digraph', 'undigraph', 'nodesonly']) {
@@ -152,14 +201,11 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
 
     (function() {
         describe('startListeners()', () => {
-            const checkImpl = (canvasHasOnWheel, canvasHasOnMouseWheel, fsmAlphabetContainerIsSet) => {
-                const canvas = canvasHasOnWheel || canvasHasOnMouseWheel ? {} : null;
-                if(canvasHasOnWheel) {
-                    canvas.onwheel = dummy();
-                    canvas.addEventListener = sinon.spy();
-                }
-                if(canvasHasOnMouseWheel) {
-                    canvas.onmousewheel = dummy();
+            const checkImpl = (canvasIsSet, canvasHasOnWheel, canvasHasOnMouseWheel, fsmAlphabetContainerIsSet) => {
+                const canvas = canvasIsSet ? {} : null;
+                if(canvas) {
+                    if(canvasHasOnWheel) canvas.onwheel = dummy();
+                    if(canvasHasOnMouseWheel) canvas.onmousewheel = dummy();
                     canvas.addEventListener = sinon.spy();
                 }
                 const canvasInitialProps = canvas ? Object.getOwnPropertyNames(canvas) : [];
@@ -176,6 +222,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     assert.strictEqual(typeof canvas.onmouseup, 'function');
                     if('onwheel' in canvas) checkAddRemEvtArgs(canvas.addEventListener, ['wheel']);
                     else if('onmousewheel' in canvas) checkAddRemEvtArgs(canvas.addEventListener, ['mousewheel']);
+                    else checkAddRemEvtArgs(canvas.addEventListener, []);
                     for(const prop of [...canvasInitialProps, 'ondblclick', 'onmousedown', 'onmousemove', 'onmouseup']) delete canvas[prop];
                     assert.deepStrictEqual(canvas, {});
                 }
@@ -187,29 +234,24 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 checkAddRemEvtArgs(documentListener, ['keydown', 'keyup', 'keypress']);
                 documentListener.restore();
             };
-            it('should behave as expected when canvas and fsmAlphabetContainer are not set', () => {
-                checkImpl(false, false, false);
-            });
-            it('should behave as expected when either canvas or fsmAlphabetContainer is set', () => {
-                const setContainer = false;
-                checkImpl(true, false, setContainer);
-                checkImpl(false, true, setContainer);
-                checkImpl(true, true, setContainer);
-                checkImpl(false, false, true);
-            });
-            it('should behave as expected when both canvas and fsmAlphabetContainer are set', () => {
-                checkImpl(true, true, true);
+            it('should behave as expected', () => {
+                for(const canvasIsSet of [true, false]) {
+                    for(const canvasHasOnWheel of [true, false]) {
+                        for(const canvasHasOnMouseWheel of [true, false]) {
+                            for(const fsmAlphabetContainerIsSet of [true, false]) {
+                                checkImpl(canvasIsSet, canvasHasOnWheel, canvasHasOnMouseWheel, fsmAlphabetContainerIsSet);
+                            }
+                        }
+                    }
+                }
             });
         });
         describe('stopListeners()', () => {
-            const checkImpl = (canvasHasOnWheel, canvasHasOnMouseWheel, fsmAlphabetContainerIsSet) => {
-                const canvas = canvasHasOnWheel || canvasHasOnMouseWheel ? {} : null;
-                if(canvasHasOnWheel) {
-                    canvas.onwheel = dummy();
-                    canvas.removeEventListener = sinon.spy();
-                }
-                if(canvasHasOnMouseWheel) {
-                    canvas.onmousewheel = dummy();
+            const checkImpl = (canvasIsSet, canvasHasOnWheel, canvasHasOnMouseWheel, fsmAlphabetContainerIsSet) => {
+                const canvas = canvasIsSet ? {} : null;
+                if(canvas) {
+                    if(canvasHasOnWheel) canvas.onwheel = dummy();
+                    if(canvasHasOnMouseWheel) canvas.onmousewheel = dummy();
                     canvas.removeEventListener = sinon.spy();
                 }
                 const canvasInitialProps = canvas ? Object.getOwnPropertyNames(canvas) : [];
@@ -227,6 +269,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     assert.strictEqual(canvas.onmouseup, null);
                     if('onwheel' in canvas) checkAddRemEvtArgs(canvas.removeEventListener, ['wheel']);
                     else if('onmousewheel' in canvas) checkAddRemEvtArgs(canvas.removeEventListener, ['mousewheel']);
+                    else checkAddRemEvtArgs(canvas.removeEventListener, []);
                     for(const prop of [...canvasInitialProps, 'ondblclick', 'onmousedown', 'onmousemove', 'onmouseup']) delete canvas[prop];
                     assert.deepStrictEqual(canvas, {});
                 }
@@ -244,18 +287,16 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(draw.calledAfter(documentListener), true);
                 documentListener.restore();
             };
-            it('should behave as expected when canvas and fsmAlphabetContainer are not set', () => {
-                checkImpl(false, false, false);
-            });
-            it('should behave as expected when either canvas or fsmAlphabetContainer is set', () => {
-                const setContainer = false;
-                checkImpl(true, false, setContainer);
-                checkImpl(false, true, setContainer);
-                checkImpl(true, true, setContainer);
-                checkImpl(false, false, true);
-            });
-            it('should behave as expected when both canvas and fsmAlphabetContainer are set', () => {
-                checkImpl(true, true, true);
+            it('should behave as expected', () => {
+                for(const canvasIsSet of [true, false]) {
+                    for(const canvasHasOnWheel of [true, false]) {
+                        for(const canvasHasOnMouseWheel of [true, false]) {
+                            for(const fsmAlphabetContainerIsSet of [true, false]) {
+                                checkImpl(canvasIsSet, canvasHasOnWheel, canvasHasOnMouseWheel, fsmAlphabetContainerIsSet);
+                            }
+                        }
+                    }
+                }
             });
         });
     })();
@@ -289,7 +330,8 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     if('availHeight' in screenObj) screenHeight = screenObj.availHeight;
                 }
                 const parseSuffixedValue = sinon.spy(JsuCmn, 'parseSuffixedValue');
-                const canvas = {};
+                const cwidth = dummy(), cheight = dummy();
+                const canvas = {width:cwidth, height:cheight};
                 _setCanvas(canvas);
                 Nvc.setCanvasSize(options);
                 assert.strictEqual(parseSuffixedValue.calledTwice, true);
@@ -302,7 +344,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                             case '%': if(screenWidth !== null) return optionsData.number * screenWidth * 0.01;
                         }
                     }
-                    return canvas.width; // width unchanged
+                    return cwidth; // width unchanged
                 })());
                 assert.strictEqual(parseSuffixedValue.getCall(1).calledWithExactly(options.height), true);
                 assert.strictEqual(canvas.height, (function() {
@@ -313,7 +355,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                             case '%': if(screenHeight !== null) return optionsData.number * screenHeight * 0.01;
                         }
                     }
-                    return canvas.height; // height unchanged
+                    return cheight; // height unchanged
                 })());
                 delete canvas.width;
                 delete canvas.height;
@@ -427,7 +469,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     checkImpl(false, false, options);
                 }
             });
-            it('should behave as expected when both canvas and fsmAlphabetContainer are set', () => {
+            it('should behave as expected when canvas and fsmAlphabetContainer are set', () => {
                 for(const options of [
                     optParamVal, null,
                     {},
@@ -882,13 +924,14 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 assert.strictEqual(c.translate.calledAfter(c.save), true);
                 assert.strictEqual(c.lineWidth, 1);
                 assert.strictEqual(c.font, config.canvas.font);
-                const lastFunc = c.translate;
+                const lastFunc = c.translate; // last function called at this point
                 const allItems = [...nodes, ...links, ...textItems];
                 for(const x of allItems) {
                     assert.strictEqual(x.draw.calledOnce, true);
                     assert.strictEqual(x.draw.calledAfter(lastFunc), true);
-                    assert.strictEqual(x.draw.getCall(0).args.length >= 1, true);
+                    assert.strictEqual(x.draw.getCall(0).args.length === 2, true);
                     assert.strictEqual(x.draw.getCall(0).args[0], c);
+                    assert.strictEqual(typeof x.draw.getCall(0).args[1], 'boolean');
                 }
                 assert.strictEqual(c.restore.calledOnceWithExactly(), true);
                 assert.strictEqual(allItems.every(x => c.restore.calledAfter(x.draw)), true);
@@ -906,25 +949,48 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
     })();
 
     (function() {
-        const getItem = () => ({toJson:sinon.fake.returns(dummy())});
         describe('fetchJsonObject()', () => {
-            it('should bahave as expected', () => {
+            const getItem = () => ({toJson:sinon.fake.returns(dummy())});
+            const applyChanges = (fsmAlphabetContainer) => {
                 const nodes = [getItem(), getItem()];
                 const links = [getItem(), getItem()];
                 const textItems = [getItem(), getItem()];
+                _setAlphabetContainer(fsmAlphabetContainer);
                 _setNodes(nodes);
                 _setLinks(links);
                 _setTextItems(textItems);
+                return {nodes, links, textItems};
+            };
+            it('should return a new reference for each call', () => {
+                assert.strictEqual(Nvc.fetchJsonObject() !== Nvc.fetchJsonObject(), true);
+                for(const fsmAlphabetContainer of [undefined, null, dummy()]) {
+                    applyChanges(fsmAlphabetContainer);
+                    assert.strictEqual(Nvc.fetchJsonObject() !== Nvc.fetchJsonObject(), true);
+                }
+            });
+            it('should behave as expected when called prior to any change', () => {
                 const fetchedData = Nvc.fetchJsonObject();
-                assert.strictEqual(nodes.every(x => x.toJson.calledOnce), true);
-                assert.strictEqual(links.every(x => x.toJson.calledOnce), true);
-                assert.strictEqual(textItems.every(x => x.toJson.calledOnce), true);
                 assert.deepStrictEqual(fetchedData, {
-                    'fsmAlphabet': Nvc.getData().fsmAlphabet,
-                    'nodes': nodes.map(x => x.toJson.getCall(0).returnValue),
-                    'links': links.map(x => x.toJson.getCall(0).returnValue),
-                    'textItems': textItems.map(x => x.toJson.getCall(0).returnValue),
+                    'fsmAlphabet': '',
+                    'nodes': [],
+                    'links': [],
+                    'textItems': [],
                 });
+            });
+            it('should behave as expected when called after changes', () => {
+                for(const fsmAlphabetContainer of [undefined, null, {}, {value:dummy()}]) {
+                    const {nodes, links, textItems} = applyChanges(fsmAlphabetContainer);
+                    const fetchedData = Nvc.fetchJsonObject();
+                    assert.strictEqual(nodes.every(x => x.toJson.calledOnce), true);
+                    assert.strictEqual(links.every(x => x.toJson.calledOnce), true);
+                    assert.strictEqual(textItems.every(x => x.toJson.calledOnce), true);
+                    assert.deepStrictEqual(fetchedData, {
+                        'fsmAlphabet': _getAlphabetFromContainer(fsmAlphabetContainer),
+                        'nodes': nodes.map(x => x.toJson.getCall(0).returnValue),
+                        'links': links.map(x => x.toJson.getCall(0).returnValue),
+                        'textItems': textItems.map(x => x.toJson.getCall(0).returnValue),
+                    });
+                }
             });
         });
     })();
@@ -934,14 +1000,15 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
             it('should return the expected value if JSON is not set', () => {
                 for(const json of [undefined, null]) {
                     sinon.stub(global, 'JSON').value(json);
-                    assert.strictEqual(Nvc.fetchJsonString(), '');
-                    assert.strictEqual(Nvc.fetchJsonString(''), '');
+                    for(const indents of jsonStringifyIndents) {
+                        assert.strictEqual(Nvc.fetchJsonString(indents), '');
+                    }
                 }
             });
             it('should bahave as expected otherwise', () => {
                 for(const indents of jsonStringifyIndents) {
-                    const stringify = sinon.spy(JSON, 'stringify');
-                    const fetchJsonObject = Nvc.fetchJsonObject = sinon.spy();
+                    const stringify = sinon.stub(JSON, 'stringify').returns(dummy());
+                    const fetchJsonObject = Nvc.fetchJsonObject = sinon.fake.returns(dummy());
                     const fetchedData = Nvc.fetchJsonString(indents);
                     assert.strictEqual(fetchJsonObject.calledOnceWithExactly(), true);
                     assert.strictEqual(stringify.calledOnceWithExactly(fetchJsonObject.getCall(0).returnValue, null, indents), true);
@@ -955,7 +1022,7 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
     (function() {
         describe('fetchPngDataString()', () => {
             it('should bahave as expected', () => {
-                const initialContex = () => ({});
+                const initialContex = () => ({_testSpecificProp:0});
                 const getContext = sinon.fake.returns(initialContex());
                 const toDataURL = sinon.fake.returns(dummy());
                 _setCanvas({getContext, toDataURL});
@@ -1003,16 +1070,19 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
     (function() {
         describe('clear()', () => {
             it('should clear all data and call draw()', () => {
-                _setNodes([dummy(), dummy()]);
-                _setLinks([dummy(), dummy()]);
-                _setTextItems([dummy(), dummy()]);
-                const draw = Nvc.draw = sinon.spy();
-                Nvc.clear();
-                assert.deepStrictEqual(Nvc.getData().fsmAlphabet, '');
-                assert.deepStrictEqual(_getNodes(), []);
-                assert.deepStrictEqual(_getLinks(), []);
-                assert.deepStrictEqual(_getTextItems(), []);
-                assert.strictEqual(draw.calledOnceWithExactly(), true);
+                for(const fsmAlphabetContainer of [undefined, null, {}, {value:dummy()}]) {
+                    _setAlphabetContainer(fsmAlphabetContainer);
+                    _setNodes([dummy(), dummy()]);
+                    _setLinks([dummy(), dummy()]);
+                    _setTextItems([dummy(), dummy()]);
+                    const draw = Nvc.draw = sinon.spy();
+                    Nvc.clear();
+                    assert.deepStrictEqual(_getAlphabetFromContainer(fsmAlphabetContainer), '');
+                    assert.deepStrictEqual(_getNodes(), []);
+                    assert.deepStrictEqual(_getLinks(), []);
+                    assert.deepStrictEqual(_getTextItems(), []);
+                    assert.strictEqual(draw.calledOnceWithExactly(), true);
+                }
             });
         });
     })();
@@ -1025,36 +1095,50 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
             const SelfLink = NvcTypes.SelfLink;
             const StartLink = NvcTypes.StartLink;
             const TextItem = NvcTypes.TextItem;
-            const checkImpl = (obj, jsonInvalid, linkCanBeInserted) => {
+            const checkImpl = (obj, jsonInvalid, linkCanBeInserted, fsmAlphabetContainer) => {
                 if(!obj) obj = {};
                 const objFsmAlphabet = !JsuCmn.isString(obj.fsmAlphabet) ? '' : obj.fsmAlphabet;
                 const objNodes = !JsuCmn.isArray(obj.nodes) ? [] : obj.nodes;
                 const objLinks = !JsuCmn.isArray(obj.links) ? [] : obj.links;
                 const objTextItems = !JsuCmn.isArray(obj.textItems) ? [] : obj.textItems;
-                const jsonForNode = () => jsonInvalid ? null : dummy();
+                const ijson = 0; // invalid JSON: a falsy value is enough to match implementation
+                const jsonForNode = () => jsonInvalid ? ijson : dummy();
                 const jsonForAnyLink = sinon.fake(
-                    () => jsonInvalid ? null : {prepareInsertionToCanvas:sinon.fake.returns(linkCanBeInserted)}
+                    () => jsonInvalid ? ijson : {prepareInsertionToCanvas:sinon.fake.returns(linkCanBeInserted)}
                 );
-                const jsonForTextItem = () => jsonInvalid ? null : dummy();
+                const jsonForTextItem = () => jsonInvalid ? ijson : dummy();
                 const Node_fromJson = sinon.stub(Node, 'fromJson').callsFake(jsonForNode);
                 const Link_fromJson = sinon.stub(Link, 'fromJson').callsFake(jsonForAnyLink);
                 const SelfLink_fromJson = sinon.stub(SelfLink, 'fromJson').callsFake(jsonForAnyLink);
                 const StartLink_fromJson = sinon.stub(StartLink, 'fromJson').callsFake(jsonForAnyLink);
                 const TextItem_fromJson = sinon.stub(TextItem, 'fromJson').callsFake(jsonForTextItem);
                 const draw = Nvc.draw = sinon.spy();
+                _setAlphabetContainer(fsmAlphabetContainer);
                 Nvc.loadJsonObject(obj);
-                assert.strictEqual(typeof Nvc.getData().fsmAlphabet, 'string');
+                // check alphabet
+                if(fsmAlphabetContainer) {
+                    assert.strictEqual(fsmAlphabetContainer.value, Nvc.filterTextAccordingToCanvasRules(objFsmAlphabet));
+                    assert.strictEqual(_getAlphabetFromData(), fsmAlphabetContainer.value);
+                }
+                else {
+                    assert.strictEqual(_getAlphabetFromData(), '');
+                }
+                // check nodes
                 assert.strictEqual(Node_fromJson.callCount, objNodes.length);
-                assert.deepStrictEqual(_getNodes(), Node_fromJson.returnValues.filter(x => x !== null));
+                assert.deepStrictEqual(_getNodes(), Node_fromJson.returnValues.filter(x => x !== ijson));
+                // check links
                 assert.strictEqual(Link_fromJson.callCount, objLinks.filter(x => x.type === 'Link').length);
                 assert.strictEqual(SelfLink_fromJson.callCount, objLinks.filter(x => x.type === 'SelfLink').length);
                 assert.strictEqual(StartLink_fromJson.callCount, objLinks.filter(x => x.type === 'StartLink').length);
-                const createdLinks = jsonForAnyLink.returnValues; // the order of creation is automatically preserved
-                assert.strictEqual(createdLinks.filter(x => x !== null).every(x => x.prepareInsertionToCanvas.calledOnce), true);
-                assert.deepStrictEqual(_getLinks(), createdLinks.filter(x => x !== null && x.prepareInsertionToCanvas.returnValues[0] === true));
+                const createdLinks = jsonForAnyLink.returnValues; // note that the order in which links are created is preserved
+                assert.strictEqual(createdLinks.filter(x => x !== ijson).every(x => x.prepareInsertionToCanvas.calledOnce), true);
+                assert.deepStrictEqual(_getLinks(), createdLinks.filter(x => x !== ijson && x.prepareInsertionToCanvas.returnValues[0] === true));
+                // check text items
                 assert.strictEqual(TextItem_fromJson.callCount, objTextItems.length);
-                assert.deepStrictEqual(_getTextItems(), TextItem_fromJson.returnValues.filter(x => x !== null));
+                assert.deepStrictEqual(_getTextItems(), TextItem_fromJson.returnValues.filter(x => x !== ijson));
+                // check everything else
                 assert.strictEqual(draw.called, true);
+                // ...
                 Node_fromJson.restore();
                 Link_fromJson.restore();
                 SelfLink_fromJson.restore();
@@ -1062,24 +1146,30 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                 TextItem_fromJson.restore();
             };
             for(const obj of [
-                null,
-                {},
-                {fsmAlphabet:dummy()+''}, // explicitly show that we want fsmAlphabet to be string
-                {nodes:[]},
-                {nodes:[dummy(), dummy()]},
-                {links:[]},
-                {links:[{}]},
+                null, {},
+
+                {fsmAlphabet:[]}, // fsmAlphabet is not a string
+                {fsmAlphabet:dummy()+''}, // explicitly indicate that we want fsmAlphabet to be string
+                {fsmAlphabet:'\\alpha s_0'}, // use raw LaTeX shortcuts in fsmAlphabet
+                {fsmAlphabet:JsuLtx.convertLatexShortcuts('\\alpha s_0')}, // use converted LaTeX shortcuts in fsmAlphabet
+                                                                           // these are one of the values that will be filtered by Nvc.filterTextAccordingToCanvasRules()
+
+                {nodes:'not an array'}, {nodes:[]}, {nodes:[{}]}, {nodes:[dummy(), dummy()]},
+
+                {links:'not an array'}, {links:[]}, {links:[{}]},
                 {links:[
                     {type:'Link'}, {type:'SelfLink'}, {type:'StartLink'}, // add all link types once
                     {type:'StartLink'}, {type:'SelfLink'}, {type:'Link'}, // add all link types again but change order
                 ]},
-                {textItems:[]},
-                {textItems:[dummy(), dummy()]},
+
+                {textItems:'not an array'}, {textItems:[]}, {textItems:[{}]}, {textItems:[dummy(), dummy()]},
             ]) {
                 it(`should bahave as expected when obj=${JSON.stringify(obj)}`, () => {
                     for(const jsonInvalid of [true, false]) {
                         for(const linkCanBeInserted of [true, false]) {
-                            checkImpl(obj, jsonInvalid, linkCanBeInserted);
+                            for(const fsmAlphabetContainer of [undefined, null, {}, {value:dummy()}]) {
+                                checkImpl(obj, jsonInvalid, linkCanBeInserted, fsmAlphabetContainer);
+                            }
                         }
                     }
                 });
@@ -1092,33 +1182,37 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
              // we only handle the case where JSON is set (it has a non null value for example)
              // indeed the function being tested does nothing in the other case
              //
+             const jsonValidStr = jsonStringData(true);
             it('should fail and not call loadJsonObject() if the JSON string is invalid', () => {
                 const jsonParseFunc = sinon.fake.throws(dummy());
                 sinon.stub(global, 'JSON').value({parse:jsonParseFunc});
                 const jsonFailedToParseCallback = sinon.spy();
                 const jsonLoadedCallback = sinon.spy();
                 const loadJsonObject = Nvc.loadJsonObject = sinon.spy();
-                Nvc.loadJsonString('{}', jsonFailedToParseCallback, jsonLoadedCallback);
+                Nvc.loadJsonString(jsonValidStr, jsonFailedToParseCallback, jsonLoadedCallback);
                 assert.strictEqual(jsonParseFunc.calledOnce, true);
                 assert.strictEqual(jsonFailedToParseCallback.calledOnceWithExactly(jsonParseFunc.getCall(0).exception), true);
                 assert.strictEqual(jsonLoadedCallback.notCalled, true);
                 assert.strictEqual(loadJsonObject.notCalled, true);
             });
             it('should suceed and call loadJsonObject() otherwise', () => {
-                const jsonStr = jsonStringData(true);
                 const jsonFailedToParseCallback = sinon.spy();
                 const jsonLoadedCallback = sinon.spy();
                 const loadJsonObject = Nvc.loadJsonObject = sinon.spy();
-                Nvc.loadJsonString(jsonStr, jsonFailedToParseCallback, jsonLoadedCallback);
+                Nvc.loadJsonString(jsonValidStr, jsonFailedToParseCallback, jsonLoadedCallback);
                 assert.strictEqual(jsonFailedToParseCallback.notCalled, true);
                 assert.strictEqual(jsonLoadedCallback.calledOnceWithExactly(), true);
-                assert.strictEqual(loadJsonObject.calledOnceWithExactly(JSON.parse(jsonStr)), true);
+                assert.strictEqual(jsonLoadedCallback.calledAfter(loadJsonObject), true);
+                assert.strictEqual(loadJsonObject.calledOnceWithExactly(JSON.parse(jsonValidStr)), true);
             });
         });
     })();
 
     (function() {
         describe('getTypes()', () => {
+            it('should return a new reference for each call', () => {
+                assert.strictEqual(Nvc.getTypes() !== Nvc.getTypes(), true);
+            });
             it('should return only the expected data types', () => {
                 const expectedProps = ['Node', 'Link', 'SelfLink', 'StartLink', 'TextItem'];
                 const wrapper = Nvc.getTypes();
@@ -1131,12 +1225,19 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
 
     (function() {
         describe('getData()', () => {
+            it('should return a new reference for each call', () => {
+                assert.strictEqual(Nvc.getData() !== Nvc.getData(), true);
+            });
             it('should return only the expected data', () => {
                 const expectedProps = ['fsmAlphabet', 'nodes', 'links', 'textItems'];
-                const wrapper = Nvc.getData();
-                assert.strictEqual(expectedProps.every(x => x in wrapper), true);
-                for(const prop of expectedProps) delete wrapper[prop];
-                assert.deepStrictEqual(wrapper, {});
+                for(const fsmAlphabetContainer of [undefined, null, {}, {value:dummy()}]) {
+                    _setAlphabetContainer(fsmAlphabetContainer);
+                    const wrapper = Nvc.getData();
+                    assert.deepStrictEqual(wrapper.fsmAlphabet, _getAlphabetFromContainer(fsmAlphabetContainer));
+                    assert.strictEqual(expectedProps.every(x => x in wrapper), true);
+                    for(const prop of expectedProps) delete wrapper[prop];
+                    assert.deepStrictEqual(wrapper, {});
+                }
             });
         });
     })();
@@ -1231,8 +1332,9 @@ const checkAddRemEvtArgs = (addRemEvt, firstArgs) => {
                     assert.strictEqual(getLocalStorageItem.calledOnceWithExactly(id), true);
                     assert.strictEqual(loadJsonString.calledOnce, true);
                     assert.strictEqual(loadJsonString.calledAfter(getLocalStorageItem), true);
-                    assert.strictEqual(loadJsonString.getCall(0).args.length >= 1, true);
+                    assert.strictEqual(loadJsonString.getCall(0).args.length === 2, true);
                     assert.strictEqual(loadJsonString.getCall(0).args[0], getLocalStorageItem.getCall(0).returnValue);
+                    assert.strictEqual(typeof loadJsonString.getCall(0).args[1], 'function'); // failure callback for loadJsonString
                     assert.strictEqual(retVal, backupJsonValid);
                     if(!retVal) {
                         assert.strictEqual(setLocalStorageItem.calledOnceWithExactly(id, ''), true); // invalid backup must be cleared

@@ -67,17 +67,21 @@ const rmExtraGetSetProps = (obj) => {
 };
 
 // restores properties from backup to target, where backup is a clone of target
-// created using cloneGetSet(target)
+// created using cloneGetSet(target); only the properties in target are taken
+// into account by this function
 const restoreGetSet = (backup, target) => {
     for(const prop in target) {
+        // set some variables knowing that backup was created as cloneGetSet(target)
         const desctor = Object.getOwnPropertyDescriptor(target, prop);
-        const cond1 = !!(desctor !== undefined && desctor.get); // check desctor.get according to cloneGetSet()
-        const cond2 = prop + '_getterInitialValue_fkqh7NvXjG' in backup;
-        if(cond1 !== cond2) {
-            throw new Error(`Incompatible data for property '${prop}'`); // inconsistency between cloneGetSet() and restoreGetSet()
+        const getterFound = !!(desctor !== undefined && desctor.get);
+        const customFound = prop + '_getterInitialValue_fkqh7NvXjG' in backup;
+
+        // set target accordingly
+        if(getterFound !== customFound) { // the behavior of cloneGetSet() had changed unexpectedly
+            throw new Error(`Incompatible data for property '${prop}'`);
         }
         else {
-            if(cond1 && cond2) {
+            if(getterFound && customFound) {
                 target[prop] = cloneGetSet(backup[prop + '_getterInitialValue_fkqh7NvXjG']);
                 rmExtraGetSetProps(target[prop]);
             }
@@ -99,13 +103,16 @@ const restoreGetSet = (backup, target) => {
 //           that's how we will stub Nvc properties
 //     - Nvc.myProp1.myProp2.myPropN = sinon.stub().callsFake(NvcBackup.myProp1.myProp2.myPropN);
 //           this is another approach when we want a function to call its
-//           original implementation
+//           original implementation, and this is also why loadNvcScript()
+//           returns backupNvc()
 let NvcBackup = {};
 
 const backupNvc = () => { NvcBackup = cloneGetSet(Nvc); return NvcBackup; };
 
 const _setCanvas = (val) => { Nvc.setCanvasObj(val); };
 
+const _getAlphabetFromData = () => Nvc.getData().fsmAlphabet;
+const _getAlphabetFromContainer = (fsmAlphabetContainer) => fsmAlphabetContainer ? fsmAlphabetContainer.value : '';
 const _setAlphabetContainer = (val) => { Nvc.setFsmAlphabetContainerObj(val); };
 
 const _getNodes = () => Nvc.getData().nodes;
@@ -148,7 +155,7 @@ afterEach(() => {
 module.exports = {
     loadNvcScript,
     _setCanvas,
-    _setAlphabetContainer,
+    _getAlphabetFromData, _getAlphabetFromContainer, _setAlphabetContainer,
     _getNodes, _setNodes,
     _getLinks, _setLinks,
     _getTextItems, _setTextItems,

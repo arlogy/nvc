@@ -55,7 +55,7 @@ Nvc = (function() {
     // --- Config Object ---
 
     // Returns a convenient configuration object to customize the initial
-    // implementation created in 2010, including newly implemented features. The
+    // implementation created in 2010 as well as newly implemented features. The
     // returned object is initialized for use with finite state machines, but it
     // can be modified to support other types of data structures.
     function getBaseConfig() {
@@ -1276,7 +1276,7 @@ Nvc = (function() {
     //             not convertible to number (>= 0); when '%' is matched at the
     //             end of the value, the corresponding percentage of screen
     //             width is used if screen data are available. Note however that
-    //             changing the canvas width might silently fail, for example if
+    //             setting the canvas width might silently fail, for example if
     //             a CSS property such as max-width has been set for the canvas
     //             element to a lower value than set here.
     //           - 'height': same behavior as 'width' but for the canvas height.
@@ -1439,11 +1439,11 @@ Nvc = (function() {
     // in the text.
     //     - text: the text to filter.
     //
-    // This function is only introduced to conform to canvas rules. For example,
-    // it helps avoid LaTeX shortcut values that could be obtained using
-    // JsuLtx.convertLatexShortcuts(), forcing the use of unconverted LaTeX
-    // shortcuts as recommended by JsuLtx.toLatex() (called from textToLatex())
-    // which will otherwise be unusable.
+    // This function is only introduced to conform to the canvas rule mentioned
+    // above. For example, it helps avoid LaTeX shortcut values that could be
+    // obtained using JsuLtx.convertLatexShortcuts(), thus forcing the use of
+    // unconverted LaTeX shortcuts as recommended by JsuLtx.toLatex() (called
+    // from textToLatex()) which is unable to match converted LaTeX shortcuts.
     //
     // See insertableCharCodeMin and insertableCharCodeMax for more information.
     function filterTextAccordingToCanvasRules(text) {
@@ -2226,7 +2226,8 @@ Nvc = (function() {
         draw_(ignoreAutoBackup);
     }
 
-    // Collects and returns internal data as object.
+    // Collects and returns internal data, wrapped in an object with a new
+    // reference each time.
     function fetchJsonObject() {
         var obj = {
             'fsmAlphabet': getFsmAlphabetStr(),
@@ -2284,7 +2285,8 @@ Nvc = (function() {
         return exporter.toLatex();
     }
 
-    // Sets internal data from object ignoring invalid attributes and draw().
+    // Sets internal data from object (ignoring invalid attributes) and draw().
+    // All previous data are lost.
     function loadJsonObject(obj) {
         clearAll(true);
 
@@ -2314,7 +2316,7 @@ Nvc = (function() {
             } else if(objLink.type === 'StartLink') {
                 link = StartLink.fromJson(objLink, nodes);
             }
-            if(link !== null && link.prepareInsertionToCanvas()) {
+            if(link && link.prepareInsertionToCanvas()) {
                 links.push(link);
             }
         }
@@ -2328,7 +2330,7 @@ Nvc = (function() {
         draw_();
     }
 
-    // Sets internal data from JSON string.
+    // Sets internal data from JSON string. Uses loadJsonObject() internally.
     //     - str: the JSON string to parse.
     //     - jsonFailedToParseCallback: optional function called on failure;
     //       receives the caught exception (object or other) as an argument.
@@ -2357,8 +2359,8 @@ Nvc = (function() {
         if(isNumberInRange(eltIndex, 0, array.length-1) && Math.floor(eltIndex) === eltIndex) {
             return array[eltIndex];
         }
-        // we throw an exception instead of returning null or undefined
-        // because the given array might contain null or undefined
+        // we throw an exception instead of returning null or undefined because
+        // the given array might contain null or undefined
         throw new Error('No ' + eltQualifier + ' at index ' + idx);
     }
 
@@ -2406,9 +2408,10 @@ Nvc = (function() {
         return config.global.autoBackup ? restoreBackup(config.global.autoBackupId) : false;
     }
 
-    // Returns all possible types of canvas items. This function must only be
-    // used from the outside of this script. Use cases include checking item
-    // types as returned by getData() for example.
+    // Returns all possible types of canvas items, wrapped in an object with a
+    // new reference each time. This function must only be used from the outside
+    // of this script. Use cases include checking item types as returned by getData()
+    // for example.
     function getTypes() {
         return {
             'Node': Node,
@@ -2419,12 +2422,13 @@ Nvc = (function() {
         };
     }
 
-    // Returns internal data as object. This function must only be used from the
-    // outside of this script. It might be used for example to synchronize with
-    // external models or update canvas content from source code (not directly
-    // from the user interface). Note that for performance reasons we return the
-    // actual items used internally in this script, not some proxies or
-    // equivalents. So be consistent when working with these items, i.e.
+    // Returns internal data, wrapped in an object with a new reference each
+    // time. This function must only be used from the outside of this script. It
+    // might be used for example to synchronize with external models or update
+    // canvas content from source code (not directly from the user interface).
+    // Note that for performance reasons we return the actual items used
+    // internally in this script, not some proxies or equivalents. So be
+    // consistent when working with these items, i.e.
     //     - don't add links when you have configured nvc to not accept any (see
     //       config object);
     //     - check how item properties are used in item classes before setting
@@ -2442,7 +2446,7 @@ Nvc = (function() {
     // --- Exposing Attributes ---
 
     return {
-        'getBaseConfig': getBaseConfig, // see (1) below; one should set config directly instead
+        'getBaseConfig': getBaseConfig, // setting this property will not override the internal function as it is used during initialization; one should set config directly instead
         get config() { return config; }, set config(v) { config = v; },
         get setConfigFor() { return setConfigFor; }, set setConfigFor(v) { setConfigFor = v; },
 
@@ -2485,7 +2489,5 @@ Nvc = (function() {
 
         get saveBackup() { return saveBackup; }, set saveBackup(v) { saveBackup = v; },
         get restoreBackup() { return restoreBackup; }, set restoreBackup(v) { restoreBackup = v; },
-
-        // (1) this function cannot be overridden because it is used during initialization
     };
 })();

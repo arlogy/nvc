@@ -11,7 +11,7 @@ Nvc.quick = (function() {
     var JsuCmn = Jsu.Common;
     var JsuLtx = Jsu.Latex;
 
-    var outputElt = null; // see setOutput()
+    var outputElt = null;
     var outputElt_focusListenersData = null;
     var outputElt_focusPreviousElt = null;
 

@@ -16,7 +16,11 @@ const optParamVal = undefined;
 
 // possible values when an input similar to the JSON.stringify() space parameter
 // is needed
-const jsonStringifyIndents = [optParamVal, null, '', -2, 2, '  '];
+const jsonStringifyIndents = [
+    optParamVal, null,
+    -2, 2, 11,
+    '', '  ', ' '.repeat(11),
+];
 
 module.exports = {
     dummy,

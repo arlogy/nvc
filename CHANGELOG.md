@@ -2,24 +2,20 @@
 
 ## Next version
 
-- Update dependencies.
-    - Update jsu to a new version (see documentation): all changes to the
-    library must be taken into account when accessing its APIs explicitly, i.e.
-    not via nvc.
+jsu updated to a new version (see documentation): all changes to the library
+must be taken into account when accessing its APIs explicitly, i.e. not via nvc.
+
 - Add `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates)`.
-- Remove `Nvc.convertLatexShortcuts(text)` which should be replaced with `Jsu.Latex.convertLatexShortcuts(...)`.
+- Remove `Nvc.convertLatexShortcuts(text)` which should be replaced with `Jsu.Latex.convertLatexShortcuts(text)`.
 - Remove `Nvc.getLatexShortcutPatterns()` which should be replaced with `Jsu.Latex.getLatexShortcutData()`,
-keeping in mind the following for the returned object.
-    - Property `greekLetter.specialChar` becomes `greekLetter.pattern.specialChar`.
-    - Property `greekLetter.valueSource` becomes `greekLetter.pattern.list`.
-    - Property `greekLetter.value`       becomes `greekLetter.pattern.value`.
-    - Property `subscript.specialChar`   becomes `subscript.pattern.specialChar`.
-    - Property `subscript.value`         becomes `subscript.pattern.value`.
+keeping in mind the following changes for the properties of the returned object:
+`greekLetter.specialChar` &rarr; `greekLetter.pattern.specialChar`,
+`greekLetter.valueSource` &rarr; `greekLetter.pattern.list`,
+`greekLetter.value`       &rarr; `greekLetter.pattern.value`,
+`subscript.specialChar`   &rarr; `subscript.pattern.specialChar`,
+`subscript.value`         &rarr; `subscript.pattern.value`.
 - Update `Nvc.buildFsmTransitionTableHtml(model, htmlAttrs, indents)`: the
 attributes provided in `htmlAttrs` will always be trimmed before use.
-- Update `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates, errorPrefix)`
-to `Nvc.parseFsmCsv(str, allowFullBlanks, allowDuplicates)` for more explicit
-error messages without using a prefix string.
 
 ## 0.9.0 - 2022/09/03
 
