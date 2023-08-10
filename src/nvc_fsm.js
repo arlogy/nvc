@@ -178,6 +178,9 @@ Nvc.fsm = (function() {
                                  //     2.1. all[<from_state_id>][<input>] yields undefined if no state is reachable from the state when the input is read
                                  //     2.2. all[<from_state_id>][<input>] yields the non-empty array of state IDs reachable from the state when the input is read
                                  //                                        the array does not contain duplicates
+                                 // besides, be aware that the traversal order of the 'for ... in' statement is either implementation-specific or defined by recent
+                                 // versions of the ECMAScript specification; so instead of iterating over 'transitions.all', which wouldn't necessarily preserve
+                                 // the order in 'states.all', one might sometimes want to loop over 'states.all' and only look entries up in 'transitions.all'
                 'get': function(fromStateId, input) { // returns the array of state IDs that are reachable from a state when an input is read
                                                       //     an empty array instead of undefined is returned if no state can be reached
                     var transitionObj = this.all[fromStateId];
@@ -331,22 +334,14 @@ Nvc.fsm = (function() {
     //           - All arrays of state IDs are sorted in ascending order,
     //             including those that can be retrieved using the 'transitions'
     //             property of the model.
-    //                 As for the 'transitions' property of the model, be aware
-    //                 that the traversal order of the 'for ... in' statement is
-    //                 either implementation-specific or defined by recent
-    //                 versions of the ECMAScript specification. So instead of
-    //                 iterating over 'transitions.all', which wouldn't
-    //                 necessarily preserve the order in 'states.all', one might
-    //                 sometimes want to loop over 'states.all' and only look
-    //                 entries up in 'transitions.all'.
     //           - No other properties are sorted.
     //     - compareConvertedShortcuts: optional; indicates whether LaTeX
     //       shortcuts must be compared as is when sorting model (this happens
     //       when the option is disabled) or whether they should be converted
     //       first using JsuLtx.convertLatexShortcuts() (this happens when the
-    //       option is enabled); defaults to true. When enabled, the result is
-    //       the same as if the LaTeX shortcuts to be sorted were all converted
-    //       using JsuLtx.convertLatexShortcuts().
+    //       option is enabled); defaults to true. When this option is enabled,
+    //       the result is the same as if the LaTeX shortcuts to be sorted were
+    //       all converted first, using JsuLtx.convertLatexShortcuts().
     //           For your information, this option was introduced because
     //           sorting LaTeX shortcuts can give different results depending on
     //           whether the shortcuts are converted before or after sorting;
@@ -400,7 +395,7 @@ Nvc.fsm = (function() {
     // an array of rows (each an array of columns) representing the
     // state-transition table. The first row can be seen as the header of the
     // table while the other rows provide its content. For debugging purposes,
-    // you can easily view the rows returned by this function using console.table()
+    // one can easily view the rows returned by this function using console.table()
     // among others.
     //
     // Below is an example explaining the structure of the rows.
@@ -618,7 +613,7 @@ Nvc.fsm = (function() {
         });
         // (1) the CSS selector '... thead td ...' is only used to automatically
         //     take into account cases where <td> (instead of <th>) is used in
-        //     <thead>, for example when modifying the generated table
+        //     <thead>, for example when the generated table is modified
 
         return {
             'table': tContent,
@@ -627,7 +622,8 @@ Nvc.fsm = (function() {
     }
 
     // Used to convert entries during buildFsmTransitionTableHtml(). Can also be
-    // used when building such a table without using the dedicated function.
+    // used when building such a table by other means (i.e. without using the
+    // dedicated function).
     function convertFsmTransitionTableHtmlEntry(val) {
         return Nvc.textToXml( // to escape HTML special characters
             JsuLtx.convertLatexShortcuts(val)
