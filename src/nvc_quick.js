@@ -84,7 +84,7 @@ Nvc.quick = (function() {
         });
     }
 
-    // A wrapper for Nvc.start().
+    // A wrapper for Nvc.start(). Returns a boolean success/failure flag.
     //     - canvasId: used to find the canvas component; also used as prefix
     //       for the FSM alphabet container ID (canvasId + '_fsm_alphabet'). The
     //       two resulting objects are passed to Nvc.start().
@@ -104,40 +104,57 @@ Nvc.quick = (function() {
     }
 
     // Installs all necessary event listeners to easily switch focus to/from the
-    // output element. The listeners are only installed once regardless of the
-    // number of function calls. The hotkey combination to trigger focus
-    // switching is Ctrl + Space. However, this combination is already reserved
-    // on Mac (the equivalent of Ctrl being Command), so Mac users can use
-    // Ctrl + Shift + Space instead for example.
+    // output element.
+    //     The listeners are only installed once regardless of the number of
+    //     function calls. The hotkey combination to trigger focus switching is
+    //     Ctrl + Space. However, this combination is already reserved on Mac
+    //     (the equivalent of Ctrl being Command), so Mac users can use
+    //     Ctrl + Shift + Space instead for example.
+    // See revertOutputFocusListeners() for the reverse operation.
     function installOutputFocusListeners() {
         if(!outputElt_focusListenersData) {
             outputElt_focusListenersData = {
                 'ctrlDown': false,
+                'keydownCallback': function(e) {
+                    if(e.keyCode === 17) outputElt_focusListenersData.ctrlDown = true;
+                },
+                'keyupCallback': function(e) {
+                    if(e.keyCode === 17) outputElt_focusListenersData.ctrlDown = false;
+                    if(outputElt_focusListenersData.ctrlDown && e.keyCode === 32) { // Ctrl + Space (+ whatever); see (1) below
+                        switchOutputFocus();
+                    }
+                    // (1) Mac users would use Ctrl + Shift + Space for example
+                    //     because the Command + Space shortcut is already
+                    //     reserved; indeed, Command on Mac is the equivalent of
+                    //     Ctrl on Windows
+                },
+                'blurCallback': function(e) {
+                    // reset the previously focused element when the user
+                    // explicitly unfocused the output element
+                    outputElt_focusPreviousElt = null;
+                },
             };
 
-            window.addEventListener('keydown', function(e) {
-                if(e.keyCode === 17) outputElt_focusListenersData.ctrlDown = true;
-            });
-
-            window.addEventListener('keyup', function(e) {
-                if(e.keyCode === 17) outputElt_focusListenersData.ctrlDown = false;
-                if(outputElt_focusListenersData.ctrlDown && e.keyCode === 32) { // Ctrl + Space (+ whatever); see (1) below
-                    switchOutputFocus();
-                }
-                // (1) Mac users would use Ctrl + Shift + Space for example
-                //     because the Command + Space shortcut is already reserved;
-                //     indeed, Command on Mac is the equivalent of Ctrl on
-                //     Windows
-            });
+            window.addEventListener('keydown', outputElt_focusListenersData.keydownCallback);
+            window.addEventListener('keyup', outputElt_focusListenersData.keyupCallback);
 
             // we prefer the blur event because it was released for Firefox long
             // before the focusout event; however, keep in mind (for future
-            // changes to this code) that the documentation says
+            // changes to this code) that the documentation says:
             //     The value of Document.activeElement varies across browsers while this event is being handled [...]
-            outputElt.addEventListener('blur', function(e) {
-                // reset the previously focused element when the user explicitly unfocused the output element
-                outputElt_focusPreviousElt = null;
-            });
+            outputElt.addEventListener('blur', outputElt_focusListenersData.blurCallback);
+        }
+    }
+
+    // Uninstalls all event listeners installed by installOutputFocusListeners()
+    // and clears related data. Does nothing if no such listener has been
+    // installed.
+    function revertOutputFocusListeners() {
+        if(outputElt_focusListenersData) {
+            window.removeEventListener('keydown', outputElt_focusListenersData.keydownCallback);
+            window.removeEventListener('keyup', outputElt_focusListenersData.keyupCallback);
+            outputElt.removeEventListener('blur', outputElt_focusListenersData.blurCallback);
+            outputElt_focusListenersData = null;
         }
     }
 
@@ -191,10 +208,11 @@ Nvc.quick = (function() {
 
     // Sets the output element for all data requested by the user and returns a
     // boolean success/failure flag. Note that the output element can also be
-    // used as input by reading from it.
+    // used as input (i.e. by reading data from it).
     //     - id: the ID of an HTML <textarea> element.
-    //     - onFailure: function called on failure; must be implemented
-    //       according to defaultAlert() which is used if not provided.
+    //     - onFailure: function called on failure, i.e. when the HTML element
+    //       with the given ID cannot be found; must be implemented according to
+    //       defaultAlert() which is used if not provided.
     function setOutput(id, onFailure) {
         if(!onFailure) onFailure = defaultAlert;
 
@@ -257,7 +275,7 @@ Nvc.quick = (function() {
             outputText('Finite state machine is valid');
         }
         else {
-            var text = 'Finite state machine is not valid'
+            var text = 'Finite state machine is not valid';
             for(var i = 0; i < model.errors.length; i++) {
                 text += '\n    - ' + JsuLtx.convertLatexShortcuts(model.errors[i]);
             }
@@ -274,28 +292,24 @@ Nvc.quick = (function() {
     // this function switchOutputFocus() and terminates immediately so the user
     // can paste their JSON string (i.e. no JSON content is loaded from the
     // output element).
-    //     - callback: optional function called on success or failure after
-    //       loading the JSON content; must be implemented according to
+    //     - terminateCallback: optional function called on success or failure
+    //       after loading the JSON content; must be implemented according to
     //       defaultAlertStatus() which is used if not provided.
-    function loadJsonFromOutput(callback) {
-        if(!callback) callback = defaultAlertStatus;
+    function loadJsonFromOutput(terminateCallback) {
+        if(!terminateCallback) terminateCallback = defaultAlertStatus;
 
         if(!isOutputVisible()) {
-            switchOutputFocus(); // so the user can paste their JSON string
-            return; // prevents current changes, if any, from being lost unexpectedly
+            switchOutputFocus(); // output element will be shown so that the user can paste their JSON string
+            return; // prevent possible data lost by terminating immediately
         }
 
         Nvc.loadJsonString(
             getOutputValue(),
             function(exception) {
-                callback(false,
-                         'JSON failed to parse with a {0}.'.format(exception),
-                         'Please perform a JSON export and try again.');
+                terminateCallback(false, 'JSON failed to parse with a {0}.'.format(exception), 'Please perform a JSON export and try again.');
             },
             function() {
-                callback(true,
-                        'JSON loaded!',
-                        'Note that invalid items are ignored or adjusted when necessary.');
+                terminateCallback(true, 'JSON loaded!', 'Note that invalid items are ignored or adjusted when necessary.');
             }
         );
     }
@@ -308,6 +322,7 @@ Nvc.quick = (function() {
         get bootstrap() { return bootstrap; }, set bootstrap(v) { bootstrap = v; },
         get startNvc() { return startNvc; }, set startNvc(v) { startNvc = v; },
         get installOutputFocusListeners() { return installOutputFocusListeners; }, set installOutputFocusListeners(v) { installOutputFocusListeners = v; },
+        get revertOutputFocusListeners() { return revertOutputFocusListeners; }, set revertOutputFocusListeners(v) { revertOutputFocusListeners = v; },
 
         get clearData() { return clearData; }, set clearData(v) { clearData = v; },
         get switchConfig() { return switchConfig; }, set switchConfig(v) { switchConfig = v; },

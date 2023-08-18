@@ -13,7 +13,7 @@ const {
     _getTextItems, _setTextItems,
 } = require('./setup.js');
 const NvcBackup = loadNvcScript('core');
-const {dummy, optParamVal, jsonStringifyIndents} = require('./utils.js');
+const {checkAddRemEvtArgs, dummy, jsonStringifyIndents, optParamVal} = require('./utils.js');
 
 const assert = require('assert');
 const jsdom = require('jsdom');
@@ -25,22 +25,6 @@ const jsonStringData = (valid) => valid ? `{"x":"${dummy()}"}` : dummy();
     JSON.parse(jsonStringData(true));
     assert.throws(() => JSON.parse(jsonStringData(false)), SyntaxError);
 })();
-
-// checks that the expected JavaScript events have been registered or removed
-// using addEventListener() or removeEventListener()
-//     - listenersManager: the function whose calls are to be checked and which
-//       is used to add/remove event listeners; should be a sinon fake/spy/stub
-//     - firstArgs: the list of the first arguments passed to listenersManager
-//       for each call
-const checkAddRemEvtArgs = (listenersManager, firstArgs) => {
-    assert.strictEqual(listenersManager.callCount, firstArgs.length);
-    for(let i = 0; i < firstArgs.length; i++) {
-        const call = listenersManager.getCall(i);
-        assert.strictEqual(call.args.length, 2);
-        assert.strictEqual(call.args[0], firstArgs[i]);
-        assert.strictEqual(typeof call.args[1], 'function');
-    }
-};
 
 (function() {
     const dom = new JSDOM('<!DOCTYPE html><html></html>');

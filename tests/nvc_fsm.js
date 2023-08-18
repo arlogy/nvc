@@ -6,12 +6,15 @@
 
 const {loadNvcScript} = require('./setup.js');
 loadNvcScript('fsm');
-const {dummy, optParamVal, jsonStringifyIndents} = require('./utils.js');
+const {dummy, jsonStringifyIndents, optParamVal} = require('./utils.js');
 
 const assert = require('assert');
 const sinon = require('sinon');
 
 (function() {
+    const JsuCmn = Jsu.Common;
+    const JsuLtx = Jsu.Latex;
+
     // simplifies a FSM model created based on Nvc.fsm.getEmptyFsmModel(), so
     // that the model can be compared to other models using assert.*Equal()
     // functions for example; this is because the functions set by default as
@@ -615,7 +618,7 @@ const sinon = require('sinon');
                     // we want to test that an invalid model is not modified after sorting
                     const model = getModel();
                     model.errors.push(dummy()); // make model invalid
-                    const copy = Jsu.Common.cloneDeep(model); // copy model before sorting
+                    const copy = JsuCmn.cloneDeep(model); // copy model before sorting
                     const retVal = Nvc.fsm.sortFsmModel(model, compareConvertedShortcuts);
                     assert.strictEqual(retVal, model); // same references
                     assert.deepStrictEqual(retVal, model); // same data
@@ -623,10 +626,10 @@ const sinon = require('sinon');
                 }
             });
             it('should correctly sort a valid model', () => {
-                const converter = Jsu.Latex.convertLatexShortcuts;
+                const converter = JsuLtx.convertLatexShortcuts;
                 for(const compareConvertedShortcuts of compareConvertedShortcutsArr) {
                     const model = getModel();
-                    const copy = Jsu.Common.cloneDeep(model); // copy model before sorting
+                    const copy = JsuCmn.cloneDeep(model); // copy model before sorting
                     const retVal = Nvc.fsm.sortFsmModel(model, compareConvertedShortcuts);
                     const sortedConverted = (data) => {
                         return compareConvertedShortcuts === undefined || compareConvertedShortcuts ? // would sortFsmModel() compare converted LaTeX shortcuts while sorting?
@@ -744,7 +747,7 @@ const sinon = require('sinon');
             const getHtmlData = (model, output, htmlAttrs, indents) => {
                 // note: the 't' prefix in variable names means 'table'
 
-                indents = Jsu.Common.parseSpaceAsPerJsonStringify(indents);
+                indents = JsuCmn.parseSpaceAsPerJsonStringify(indents);
                 const convert = Nvc.fsm.convertFsmTransitionTableHtmlEntry;
 
                 // set table content
@@ -884,7 +887,7 @@ const sinon = require('sinon');
     (function() {
         describe('convertFsmTransitionTableHtmlEntry()', () => {
             it('should behave as expected', () => {
-                const convertLatexShortcuts = sinon.stub(Jsu.Latex, 'convertLatexShortcuts').callsFake(() => dummy());
+                const convertLatexShortcuts = sinon.stub(JsuLtx, 'convertLatexShortcuts').callsFake(() => dummy());
                 const textToXml = Nvc.textToXml = sinon.fake.returns(dummy());
                 const input = dummy();
                 const retVal = Nvc.fsm.convertFsmTransitionTableHtmlEntry(input);

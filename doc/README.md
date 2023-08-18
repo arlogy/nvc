@@ -23,7 +23,7 @@ Please see the corresponding directory.
 
 ## Unit tests
 
-Only the public API is tested, which excludes internal logic.
+Only the public API is tested, which excludes internal logic (mainly for `src/nvc.js`).
 - Download and install Node.js
 - `git clone <project_git_uri>`
 - `cd <project_dir>/tests`
