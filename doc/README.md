@@ -29,6 +29,8 @@ Only the public API is tested, which excludes internal logic (mainly for `src/nv
 - `cd <project_dir>/tests`
 - `npm install`
 - `npm run test` (run all tests)
+    - To run specific test scripts, for example when testing local changes to a
+    file, replace `test` with one of the `test:...` entries from `package.json`
 
 The test dependencies are as follows.
 - mocha for unit testing.

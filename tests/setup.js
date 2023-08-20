@@ -22,10 +22,19 @@ const requireNvcFsm = () => {
     require('../src/nvc_fsm.js');
 };
 
+const requireNvcQuick = () => {
+    requireNvcCore();
+    requireNvcFsm();
+    if(!Jsu.Common) Jsu.Common = require('../src/jsu_common.js');
+    if(!Jsu.Latex) Jsu.Latex = require('../src/jsu_latex.js');
+    require('../src/nvc_quick.js');
+};
+
 const loadNvcScript = (scriptId) => {
     switch(scriptId) {
         case 'core': requireNvcCore(); break;
         case 'fsm': requireNvcFsm(); break;
+        case 'quick': requireNvcQuick(); break;
         default: throw new RangeError('Unable to load Nvc script with ID "' + scriptId + '"');
     }
     return backupNvc();
