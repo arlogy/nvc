@@ -510,16 +510,19 @@ const sinon = require('sinon');
     (function() {
         describe('outputPng()', () => {
             it('should behave as expected', () => {
-                sinon.stub(global, 'document').value({location:{}});
+                const createElement = sinon.stub(document, 'createElement').returns({click:sinon.fake(), remove:sinon.fake()});
                 const fetchPngDataString = Nvc.fetchPngDataString = sinon.fake.returns(dummy());
-                const outputText = Nvc.quick.outputText = sinon.fake();
                 Nvc.quick.outputPng();
+                assert.strictEqual(createElement.calledOnceWithExactly('a'), true);
+                const obj = createElement.getCall(0).returnValue;
+                assert.deepStrictEqual(obj.download, 'network.png');
                 assert.strictEqual(fetchPngDataString.calledOnceWithExactly(), true);
-                assert.deepStrictEqual(document.location.href, fetchPngDataString.getCall(0).returnValue);
-                assert.strictEqual(
-                    outputText.calledOnceWithExactly(`Please take a screenshot on your own.\nIndeed, if you are reading this message, then the image most likely did not show up.`),
-                    true
-                );
+                assert.deepStrictEqual(obj.href, fetchPngDataString.getCall(0).returnValue);
+                assert.strictEqual(obj.click.calledOnceWithExactly(), true);
+                assert.strictEqual(obj.remove.calledOnceWithExactly(), true);
+                assert.strictEqual(obj.remove.calledAfter(obj.click), true);
+                for(const prop of ['click', 'download', 'href', 'remove']) delete obj[prop];
+                assert.deepStrictEqual(obj, {});
             });
         });
     })();

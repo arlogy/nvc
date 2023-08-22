@@ -255,16 +255,13 @@ Nvc.quick = (function() {
     }
     function outputJson(indents) { outputText(Nvc.fetchJsonString(indents)); }
     function outputPng() {
-        document.location.href = Nvc.fetchPngDataString(); // will fail on Chrome
-        outputText('Please take a screenshot on your own.\n' +
-                   'Indeed, if you are reading this message, then the image most likely did not show up.');
+        var dlink = document.createElement('a'); // download link
+        dlink.download = 'network.png';
+        dlink.href = Nvc.fetchPngDataString();
+        dlink.click();
+        dlink.remove();
     }
-    function outputSvg(indents) {
-        var svgStr = Nvc.fetchSvgString(indents);
-        outputText(svgStr);
-        // Chrome isn't ready for this yet, the 'Save As' menu item is disabled
-        // document.location.href = 'data:image/svg+xml;base64,' + btoa(svgStr);
-    }
+    function outputSvg(indents) { outputText(Nvc.fetchSvgString(indents)); }
     function outputLatex() { outputText(Nvc.fetchLatexString()); }
 
     // Checks if a FSM model is valid and outputs a relevant status message.

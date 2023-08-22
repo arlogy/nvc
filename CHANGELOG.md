@@ -18,6 +18,7 @@ keeping in mind the following changes for the properties of the returned object:
 `subscript.value`         &rarr; `subscript.pattern.value`.
 - Update `Nvc.fsm.buildFsmTransitionTableHtml(model, htmlAttrs, indents)`: the
 attributes provided in `htmlAttrs` will always be trimmed before use.
+- Update PNG export: improved browser support; user prompted to save image.
 
 ## 0.9.0 - 2022/09/03
 
