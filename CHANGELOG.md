@@ -1,6 +1,6 @@
 # Changelog
 
-## Next version
+## 1.0.0 - 2023/08/23
 
 - Dependencies
     - jsu updated to a new version: all changes to the library must be taken
