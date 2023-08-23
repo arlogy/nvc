@@ -2,9 +2,9 @@
 
 ## Next version
 
-jsu updated to a new version (see documentation): all changes to the library
-must be taken into account when accessing its APIs explicitly, i.e. not via nvc.
-
+- Dependencies
+    - jsu updated to a new version: all changes to the library must be taken
+    into account when accessing its APIs explicitly, i.e. not via nvc.
 - Add `Nvc.fsm.parseFsmCsv(str, allowFullBlanks, allowDuplicates)` for parsing
 CSV in FSM context.
 - Add `Nvc.quick.revertOutputFocusListeners()` to revert `Nvc.quick.installOutputFocusListeners()`.
@@ -19,6 +19,7 @@ keeping in mind the following changes for the properties of the returned object:
 - Update `Nvc.fsm.buildFsmTransitionTableHtml(model, htmlAttrs, indents)`: the
 attributes provided in `htmlAttrs` will always be trimmed before use.
 - Update PNG export: improved browser support; user prompted to save image.
+- Update project structure to load jsu as an npm package (aka. jsupack).
 
 ## 0.9.0 - 2022/09/03
 

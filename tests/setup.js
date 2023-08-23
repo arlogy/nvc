@@ -4,29 +4,31 @@
  Copyright (c) 2022 https://github.com/arlogy
 */
 
-// first define the Jsu object so that it can be referenced as needed
+const _jsu = require('jsupack');
+
+// define the Jsu global variable so that it can be referenced from nvc
 if(!global.Jsu) global.Jsu = {};
 
 const requireNvcCore = () => {
-    if(!Jsu.Common) Jsu.Common = require('../src/jsu_common.js');
-    if(!Jsu.Event) Jsu.Event = require('../src/jsu_event.js');
-    if(!Jsu.Latex) Jsu.Latex = require('../src/jsu_latex.js');
+    if(!Jsu.Common) Jsu.Common = _jsu.Common;
+    if(!Jsu.Event) Jsu.Event = _jsu.Event;
+    if(!Jsu.Latex) Jsu.Latex = _jsu.Latex;
     require('../src/nvc.js');
 };
 
 const requireNvcFsm = () => {
     requireNvcCore();
-    if(!Jsu.Common) Jsu.Common = require('../src/jsu_common.js');
-    if(!Jsu.CsvParser) Jsu.CsvParser = require('../src/jsu_csv_parser.js');
-    if(!Jsu.Latex) Jsu.Latex = require('../src/jsu_latex.js');
+    if(!Jsu.Common) Jsu.Common = _jsu.Common;
+    if(!Jsu.CsvParser) Jsu.CsvParser = _jsu.CsvParser;
+    if(!Jsu.Latex) Jsu.Latex = _jsu.Latex;
     require('../src/nvc_fsm.js');
 };
 
 const requireNvcQuick = () => {
     requireNvcCore();
     requireNvcFsm();
-    if(!Jsu.Common) Jsu.Common = require('../src/jsu_common.js');
-    if(!Jsu.Latex) Jsu.Latex = require('../src/jsu_latex.js');
+    if(!Jsu.Common) Jsu.Common = _jsu.Common;
+    if(!Jsu.Latex) Jsu.Latex = _jsu.Latex;
     require('../src/nvc_quick.js');
 };
 
