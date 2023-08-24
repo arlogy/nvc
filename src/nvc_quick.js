@@ -92,11 +92,10 @@ Nvc.quick = (function() {
     //     - onFailure: function called on failure; must be implemented
     //       according to defaultAlert() which is used if not provided.
     function startNvc(canvasId, options, onFailure) {
-        if(!onFailure) onFailure = defaultAlert;
-
         var canvas = document.getElementById(canvasId);
         var fsmAlphabetContainer = document.getElementById(canvasId + '_fsm_alphabet');
         if(!Nvc.start(canvas, fsmAlphabetContainer, options)) {
+            if(!onFailure) onFailure = defaultAlert;
             onFailure('Failed to start nvc with canvas ID "{0}"'.format(canvasId));
             return false;
         }
@@ -164,7 +163,6 @@ Nvc.quick = (function() {
     //       used if not provided.
     function clearData(confirmCallback) {
         if(!confirmCallback) confirmCallback = defaultConfirm;
-
         if(confirmCallback('Do you really want to clear all data?')) {
             Nvc.clear();
         }
@@ -206,6 +204,9 @@ Nvc.quick = (function() {
         return window.confirm(message);
     }
 
+    // Returns the output element; see setOutput() and setNoOutput().
+    function getOutput() { return outputElt; }
+
     // Sets the output element for all data requested by the user and returns a
     // boolean success/failure flag. Note that the output element can also be
     // used as input (i.e. by reading data from it).
@@ -214,16 +215,20 @@ Nvc.quick = (function() {
     //       with the given ID cannot be found; must be implemented according to
     //       defaultAlert() which is used if not provided.
     function setOutput(id, onFailure) {
-        if(!onFailure) onFailure = defaultAlert;
-
         var elt = document.getElementById(id);
         if(elt) {
             outputElt = elt;
             return true;
         }
+        if(!onFailure) onFailure = defaultAlert;
         onFailure('Failed to set output element from ID "{0}"'.format(id));
         return false;
     }
+
+    // Unsets the output element, setting it to null. This should not be done in
+    // a production environment unless all interactions with the output element
+    // are disabled.
+    function setNoOutput() { outputElt = null; }
 
     function isOutputVisible() { return JsuCmn.isEltVisible(outputElt); }
     function setOutputVisible(visible) { JsuCmn.setEltVisible(outputElt, visible, 'block'); }
@@ -293,13 +298,12 @@ Nvc.quick = (function() {
     //       after loading the JSON content; must be implemented according to
     //       defaultAlertStatus() which is used if not provided.
     function loadJsonFromOutput(terminateCallback) {
-        if(!terminateCallback) terminateCallback = defaultAlertStatus;
-
         if(!isOutputVisible()) {
             switchOutputFocus(); // output element will be shown so that the user can paste their JSON string
             return; // prevent possible data lost by terminating immediately
         }
 
+        if(!terminateCallback) terminateCallback = defaultAlertStatus;
         Nvc.loadJsonString(
             getOutputValue(),
             function(exception) {
@@ -328,7 +332,9 @@ Nvc.quick = (function() {
         get defaultAlertStatus() { return defaultAlertStatus; }, set defaultAlertStatus(v) { defaultAlertStatus = v; },
         get defaultConfirm() { return defaultConfirm; }, set defaultConfirm(v) { defaultConfirm = v; },
 
+        get getOutput() { return getOutput; }, set getOutput(v) { getOutput = v; },
         get setOutput() { return setOutput; }, set setOutput(v) { setOutput = v; },
+        get setNoOutput() { return setNoOutput; }, set setNoOutput(v) { setNoOutput = v; },
         //
         get isOutputVisible() { return isOutputVisible; }, set isOutputVisible(v) { isOutputVisible = v; },
         get setOutputVisible() { return setOutputVisible; }, set setOutputVisible(v) { setOutputVisible = v; },

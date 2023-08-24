@@ -21,10 +21,17 @@ const sinon = require('sinon');
     const JsuCmn = Jsu.Common;
     const JsuLtx = Jsu.Latex;
 
-    const setOutput = (elt) => { // sets output element
-        const getElementById = sinon.stub(document, 'getElementById').returns(elt);
-        assert.strictEqual(Nvc.quick.setOutput(), true); // also make sure the operation succeeded
-        getElementById.restore();
+    const initOutput  = (elt) => { // initializes the output element accordingly (and checks that the operation succeeded)
+        if(elt) {
+            const getElementById = sinon.stub(document, 'getElementById').returns(elt);
+            assert.strictEqual(Nvc.quick.setOutput(), true);
+            assert.strictEqual(Nvc.quick.getOutput(), elt);
+            getElementById.restore();
+        }
+        else {
+            Nvc.quick.setNoOutput();
+            assert.strictEqual(Nvc.quick.getOutput(), null);
+        }
     };
 
     (function() {
@@ -152,7 +159,7 @@ const sinon = require('sinon');
             afterEach(() => {
                 // runs once after each test in this block
                 Nvc.quick.revertOutputFocusListeners();
-                setOutput(dummy());
+                initOutput();
             });
             it('should install expected events accordingly', () => {
                 sinon.spy(window, 'addEventListener');
@@ -165,7 +172,7 @@ const sinon = require('sinon');
                 };
                 // check expectations, making sure they are preserved even after several calls to installOutputFocusListeners()
                 const outputElt = {addEventListener:sinon.fake(), removeEventListener:sinon.fake()};
-                setOutput(outputElt);
+                initOutput(outputElt);
                 for(let i = 0; i < repeat; i++) {
                     Nvc.quick.installOutputFocusListeners();
                     checkImpl(outputElt);
@@ -174,7 +181,7 @@ const sinon = require('sinon');
             it('should handle Ctrl + Space combination accordingly', () => {
                 const outputElt = {addEventListener:sinon.fake(), removeEventListener:sinon.fake()};
                 const switchOutputFocus = Nvc.quick.switchOutputFocus = sinon.fake();
-                setOutput(outputElt);
+                initOutput(outputElt);
                 Nvc.quick.installOutputFocusListeners();
                 const down = (keyCode) => window.dispatchEvent(new window.KeyboardEvent('keydown', {keyCode}));
                 const up = (keyCode) => window.dispatchEvent(new window.KeyboardEvent('keyup', {keyCode}));
@@ -209,7 +216,7 @@ const sinon = require('sinon');
         describe('revertOutputFocusListeners()', () => {
             afterEach(() => {
                 // runs once after each test in this block
-                setOutput(dummy());
+                initOutput();
             });
             it('should do nothing when installOutputFocusListeners() was not called first', () => {
                 sinon.spy(window, 'addEventListener');
@@ -222,7 +229,7 @@ const sinon = require('sinon');
                 };
                 // check expectations, making sure they are preserved even after several calls to revertOutputFocusListeners()
                 const outputElt = {addEventListener:sinon.fake(), removeEventListener:sinon.fake()};
-                setOutput(outputElt);
+                initOutput(outputElt);
                 for(let i = 0; i < repeat; i++) {
                     Nvc.quick.revertOutputFocusListeners();
                     checkImpl(outputElt);
@@ -239,7 +246,7 @@ const sinon = require('sinon');
                 };
                 // check expectations, making sure they are preserved even after several calls to revertOutputFocusListeners()
                 const outputElt = {addEventListener:sinon.fake(), removeEventListener:sinon.fake()};
-                setOutput(outputElt);
+                initOutput(outputElt);
                 Nvc.quick.installOutputFocusListeners();
                 for(const obj of [window, outputElt]) { // clear data related to the above installation
                     obj.addEventListener.resetHistory();
@@ -337,11 +344,20 @@ const sinon = require('sinon');
     })();
 
     (function() {
-        describe('setOutput()', () => {
+        describe('getOutput() & setOutput()', () => {
+            afterEach(() => {
+                // runs once after each test in this block
+                initOutput();
+            });
             it('should behave as expected', () => {
                 const id = dummy();
                 for(const onFailure of [optParamVal, sinon.fake()]) {
                     for(const eltFound of [true, false]) {
+                        // set initial output element
+                        let initialOutputElt = dummy();
+                        initOutput(initialOutputElt);
+                        // set new output element
+                        let finalOutputElt = initialOutputElt;
                         let realFailure = null;
                         if(!onFailure) realFailure = Nvc.quick.defaultAlert = sinon.fake();
                         else realFailure = onFailure;
@@ -350,15 +366,33 @@ const sinon = require('sinon');
                         assert.strictEqual(getElementById.calledOnceWithExactly(id), true);
                         if(getElementById.getCall(0).returnValue) {
                             assert.strictEqual(realFailure.called, false);
+                            finalOutputElt = getElementById.getCall(0).returnValue;
                         }
                         else {
                             assert.strictEqual(realFailure.calledOnceWithExactly(`Failed to set output element from ID "${id}"`), true);
                             assert.strictEqual(realFailure.calledAfter(getElementById), true);
                         }
                         assert.deepStrictEqual(retVal, !!getElementById.getCall(0).returnValue);
+                        assert.deepStrictEqual(Nvc.quick.getOutput(), finalOutputElt);
                         getElementById.restore();
                     }
                 }
+            });
+        });
+
+        describe('getOutput() & setNoOutput()', () => {
+            afterEach(() => {
+                // runs once after each test in this block
+                initOutput();
+            });
+            it('should behave as expected', () => {
+                // set initial output element
+                let initialOutputElt = dummy();
+                initOutput(initialOutputElt);
+                assert.deepStrictEqual(Nvc.quick.getOutput(), initialOutputElt);
+                // unset output element
+                Nvc.quick.setNoOutput();
+                assert.deepStrictEqual(Nvc.quick.getOutput(), null);
             });
         });
     })();
@@ -367,12 +401,12 @@ const sinon = require('sinon');
         describe('isOutputVisible()', () => {
             afterEach(() => {
                 // runs once after each test in this block
-                setOutput(dummy());
+                initOutput();
             });
             it('should behave as expected', () => {
                 const outputElt = dummy();
                 const isEltVisible = sinon.stub(JsuCmn, 'isEltVisible').returns(dummy());
-                setOutput(outputElt);
+                initOutput(outputElt);
                 const retVal = Nvc.quick.isOutputVisible();
                 assert.strictEqual(isEltVisible.calledOnceWithExactly(outputElt), true);
                 assert.deepStrictEqual(retVal, isEltVisible.getCall(0).returnValue);
@@ -384,13 +418,13 @@ const sinon = require('sinon');
         describe('setOutputVisible()', () => {
             afterEach(() => {
                 // runs once after each test in this block
-                setOutput(dummy());
+                initOutput();
             });
             it('should behave as expected', () => {
                 const visible = dummy();
                 const outputElt = dummy();
                 const setEltVisible = sinon.stub(JsuCmn, 'setEltVisible');
-                setOutput(outputElt);
+                initOutput(outputElt);
                 Nvc.quick.setOutputVisible(visible);
                 assert.strictEqual(setEltVisible.calledOnceWithExactly(outputElt, visible, 'block'), true);
             });
@@ -402,7 +436,7 @@ const sinon = require('sinon');
             let outputElt_focusPreviousElt = null;
             const checkImpl = (outputVisible, outputElt, activeElt) => {
                 const isOutputVisible = Nvc.quick.isOutputVisible = sinon.fake.returns(outputVisible);
-                setOutput(outputElt);
+                initOutput(outputElt);
                 outputElt.focus.resetHistory();
                 sinon.stub(document, 'activeElement').value(activeElt);
                 Nvc.quick.updateOutputFocus();
@@ -423,7 +457,7 @@ const sinon = require('sinon');
             };
             afterEach(() => {
                 // runs once after each test in this block
-                setOutput(dummy());
+                initOutput();
             });
             it('should behave as expected when output is visible', () => {
                 const outputVisible = true;
@@ -470,11 +504,11 @@ const sinon = require('sinon');
         describe('getOutputValue() & setOutputValue()', () => {
             afterEach(() => {
                 // runs once after each test in this block
-                setOutput(dummy());
+                initOutput();
             });
             it('should behave as expected', () => {
                 const outputVal = dummy();
-                setOutput({});
+                initOutput({});
                 Nvc.quick.setOutputValue(outputVal);
                 assert.deepStrictEqual(Nvc.quick.getOutputValue(), outputVal);
             });
