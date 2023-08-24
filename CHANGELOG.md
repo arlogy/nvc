@@ -1,6 +1,6 @@
 # Changelog
 
-## Next version
+## 1.1.0 - 2023/08/24
 
 - Add `Nvc.quick.getOutput()` to retrieve the output element.
 - Add `Nvc.quick.setNoOutput()` to unset the output element.
