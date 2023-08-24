@@ -19,7 +19,9 @@ keeping in mind the following changes for the properties of the returned object:
 - Update `Nvc.fsm.buildFsmTransitionTableHtml(model, htmlAttrs, indents)`: the
 attributes provided in `htmlAttrs` will always be trimmed before use.
 - Update PNG export: improved browser support; user prompted to save image.
-- Update project structure to load jsu as an npm package (aka. jsupack).
+- Update project structure: mainly, jsu is loaded as npm package (aka. jsupack)
+and an additional step is required for HTML examples to refer to corresponding `*.js`
+files.
 
 ## 0.9.0 - 2022/09/03
 
