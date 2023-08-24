@@ -41,8 +41,10 @@ important being labeled "key".
 - `npm run build` **(key)**: builds nvc and runs all tests; this is the command
 to use in GitLab CI/CD automation for example.
 - `npm run clean`: deletes automatically generated data if any.
+- `npm run examples:about`: displays key information about all provided
+examples.
 - `npm run examples:html:about`: displays key information about HTML examples.
-- `npm run examples:html:gen-deps`: generates dependencies for HTML examples;
+- `npm run examples:html:gen-api-files`: generates API files for HTML examples;
 required once for tests to succeed unless previously generated dependencies are
 obsolete.
 - `npm run test`: runs all tests.

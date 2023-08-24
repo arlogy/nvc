@@ -82,7 +82,7 @@ const readFile = async (fname) => {
             const fileNames = ['01_basic.html', '02_advanced.html'];
             it('should be available', () => {
                 assert.strictEqual(fs.existsSync(dirPath), true);
-                assert.deepStrictEqual(fs.readdirSync(dirPath), [...fileNames, 'api_deps']);
+                assert.deepStrictEqual(fs.readdirSync(dirPath), [...fileNames, 'api_files']);
             });
             it('should contain the same How-To section', async () => {
                 // we check this because the HTML pages are not generated using additional entries such as the How-To section (as this is not necessary)
@@ -91,15 +91,22 @@ const readFile = async (fname) => {
                     assert.strictEqual(fileContent.indexOf(howToStr) !== -1, true);
                 }
             });
-            it('should refer to latest dependencies', async () => {
-                const depsPath = `${dirPath}/api_deps`; // dependencies path
-                const fileNames = ['jsu_common.js', 'jsu_csv_parser.js', 'jsu_event.js', 'jsu_latex.js'];
-                assert.strictEqual(fs.existsSync(depsPath), true);
-                assert.deepStrictEqual(fs.readdirSync(depsPath), fileNames);
+            it('should refer to latest API files', async () => {
+                const apisPath = `${dirPath}/api_files`;
+                const jsuFileNames = ['jsu_common.js', 'jsu_csv_parser.js', 'jsu_event.js', 'jsu_latex.js'];
+                const nvcFileNames = ['nvc.js', 'nvc_fsm.js', 'nvc_quick.js'];
+                assert.strictEqual(fs.existsSync(apisPath), true);
+                assert.deepStrictEqual(fs.readdirSync(apisPath), [...jsuFileNames, ...nvcFileNames]);
                 const jsuSrcPath = path.join(__dirname, '/../node_modules/jsupack/src');
-                for(const fname of fileNames) {
-                    const actualFileContent = await readFile(`${depsPath}/${fname}`);
+                for(const fname of jsuFileNames) {
+                    const actualFileContent = await readFile(`${apisPath}/${fname}`);
                     const expectedFileContent = await readFile(`${jsuSrcPath}/${fname}`);
+                    assert.deepStrictEqual(actualFileContent, expectedFileContent);
+                }
+                const nvcSrcPath = path.join(__dirname, '/../src');
+                for(const fname of nvcFileNames) {
+                    const actualFileContent = await readFile(`${apisPath}/${fname}`);
+                    const expectedFileContent = await readFile(`${nvcSrcPath}/${fname}`);
                     assert.deepStrictEqual(actualFileContent, expectedFileContent);
                 }
             });

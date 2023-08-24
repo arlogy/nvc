@@ -4,6 +4,8 @@
 
 - Add `Nvc.quick.getOutput()` to retrieve the output element.
 - Add `Nvc.quick.setNoOutput()` to unset the output element.
+- Create standalone HTML examples by copying all API files to said examples
+directory.
 
 ## 1.0.0 - 2023/08/23
 

@@ -8,7 +8,7 @@ properties are ignored during import.
 
 ## HTML pages
 
-`html_pages` contains HTML examples illustrating how to use nvc. These examples
-can be run locally (after download or `git clone`). However, be sure to run `npm run examples:html:gen-deps`
-first to generate up-to-date dependencies, assuming `npm install` has already
-been executed.
+`html_pages` contains standalone HTML examples illustrating how to use nvc.
+These examples can be run locally (after download or `git clone`). However, be
+sure to run `npm run examples:html:gen-api-files` first to generate up-to-date
+API-files, assuming `npm install` has already been executed.

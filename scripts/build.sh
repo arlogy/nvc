@@ -17,8 +17,8 @@ if [ "$#" -ne 1 ]; then
     echo "Invalid number of parameters: 1 expected, $# found" && exit 1
 fi
 
-if [ "$1" == "gen-html-examples-deps" ]; then
-    gen_html_examples_deps "$ROOT_PATH/node_modules/jsupack/src" "$ROOT_PATH/examples/html_pages/api_deps" || exit 1
+if [ "$1" == "gen-html-examples-api-files" ]; then
+    gen_api_files "$ROOT_PATH" "$ROOT_PATH/examples/html_pages/api_files" || exit 1
 else
-    echo "Parameter must be: gen-html-examples-deps" && exit 1
+    echo "Parameter must be: gen-html-examples-api-files" && exit 1
 fi
