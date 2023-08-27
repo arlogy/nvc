@@ -1,5 +1,9 @@
 # Changelog
 
+## Next version
+
+- Improve the names and logic of CLI tools, removing unnecessary ones.
+
 ## 1.1.0 - 2023/08/24
 
 - Add `Nvc.quick.getOutput()` to retrieve the output element.

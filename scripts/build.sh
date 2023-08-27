@@ -17,8 +17,8 @@ if [ "$#" -ne 1 ]; then
     echo "Invalid number of parameters: 1 expected, $# found" && exit 1
 fi
 
-if [ "$1" == "gen-html-examples-api-files" ]; then
-    gen_api_files "$ROOT_PATH" "$ROOT_PATH/examples/html_pages/api_files" || exit 1
+if [ "$1" == "update-html-examples" ]; then
+    update_html_examples "$ROOT_PATH" || exit 1
 else
-    echo "Parameter must be: gen-html-examples-api-files" && exit 1
+    echo "Parameter must be: update-html-examples" && exit 1
 fi

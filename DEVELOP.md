@@ -38,15 +38,11 @@ npm install
 
 After `npm install`, the following commands can be considered, the most
 important being labeled "key".
-- `npm run build` **(key)**: builds nvc and runs all tests; this is the command
-to use in GitLab CI/CD automation for example.
-- `npm run clean`: deletes automatically generated data if any.
-- `npm run examples:about`: displays key information about all provided
-examples.
-- `npm run examples:html:about`: displays key information about HTML examples.
-- `npm run examples:html:gen-api-files`: generates API files for HTML examples;
-required once for tests to succeed unless previously generated dependencies are
-obsolete.
+- `npm run build` **(key)**: runs all tests and generates HTML examples; this is
+the command to use in GitLab CI/CD automation for example.
+- `npm run clean`: deletes any automatically generated data.
+- `npm run examples:html:update`: updates HTML examples with latest
+dependencies.
 - `npm run test`: runs all tests.
     - To run specific test scripts, for example when testing local changes to a
     file, replace `test` with one of the `test:...` entries from `package.json`.

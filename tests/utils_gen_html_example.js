@@ -1,0 +1,411 @@
+/*
+ https://github.com/arlogy/nvc
+ Released under the MIT License (see LICENSE file)
+ Copyright (c) 2023 https://github.com/arlogy
+*/
+
+// Returns an HTML string for a given example type.
+//     - exampleType: the type of example for which an HTML string is to be
+//       returned. Valid values are: 'HTML_EXAMPLE_BASIC', 'HTML_EXAMPLE_ADVANCED'.
+const getExampleHtml = (exampleType) => {
+    let additionalActionButtons = null;
+    let canvasDefAttrs = null;
+    let canvasDefComment = null;
+    let cssCanvasDisplay = null;
+    let cssCanvasMaxWidth = null;
+    let cssPageMaxWidthMsg = null;
+    let customLogic = null;
+    let description = null;
+    let fsmAlphabetDefAttrs;
+    let fsmAlphabetDefComment;
+    let outputIndentsExpr = null;
+    let pageComment = null;
+    let tieFsmAlphabetContainerToCanvasFunc = null;
+
+    switch(exampleType) {
+        case 'HTML_EXAMPLE_BASIC':
+            additionalActionButtons = '';
+            canvasDefAttrs = ' width="800" height="600"';
+            canvasDefComment = 'default canvas width is reused in this file';
+            cssCanvasDisplay = 'display: block;';
+            cssCanvasMaxWidth = 'max-width: 800px; /* same as canvas default width but not necessary */';
+            cssPageMaxWidthMsg = 'statically';
+            customLogic = `
+            var JsuCmn = Jsu.Common;
+
+            var outputIndents = 4;
+            Nvc.config.global.autoBackupId = 'nvc_basic_example_autoBackupId'; // override default ID with custom one
+            Nvc.quick.bootstrap('elt_canvas', 'elt_output', {
+                'onLoad': function() {
+                    Nvc.quick.switchConfig('fsm'); // make sure the initial config is that of a FSM (even if it is the default)
+
+                    // allow the user to see all nodes and text items but not necessarily links
+                    Nvc.moveNodesIntoCanvasVisibleArea();
+                    Nvc.moveTextItemsIntoCanvasVisibleArea();
+                    Nvc.draw();
+                },
+            });
+        `;
+            description = 'basic use case for FSM';
+            fsmAlphabetDefAttrs = '';
+            fsmAlphabetDefComment = '';
+            outputIndentsExpr = 'outputIndents';
+            pageComment = 'Basic HTML example file for https://github.com/arlogy/nvc.\n     Improved in the advanced HTML example file.';
+            tieFsmAlphabetContainerToCanvasFunc = 'Nvc.tieFsmAlphabetContainerToCanvas';
+            break;
+
+        case 'HTML_EXAMPLE_ADVANCED':
+            additionalActionButtons = `
+
+                <br>---<br>
+
+                <b class="faded">Layout:</b>
+                    <select id="elt_layout" onchange="switchLayout(true)">
+                        <option value="default">Default</option>
+                        <option value="base" selected>Base</option>
+                        <option value="wide">Wide</option>
+                    </select>
+                &nbsp;-&nbsp;
+                <b class="faded">Model:</b>
+                    <select id="elt_model_type" onchange="switchModelType(true)">
+                        <option value="fsm">FSM</option>
+                        <option value="digraph">Digraph</option>
+                        <option value="undigraph">Graph</option>
+                        <option value="nodesonly">Nodes</option>
+                    </select>
+                    <span id="elt_fsm_operations">
+                      | <a href="javascript:Nvc.quick.outputFsmState(Nvc.quick.buildAndSortFsmModel())">Check</a>
+                      | <a href="javascript:Nvc.quick.outputFsmTransitionTableHtml(Nvc.quick.buildAndSortFsmModel(), parseOutputIndents())">Transition Table</a>
+                    </span>
+                &nbsp;-&nbsp;
+                <b class="faded">Output indents:</b>
+                    <select id="elt_output_indents" onchange="switchOutputIndents(true)">
+                        <option value="0">0</option>
+                        <option value="2">2</option>
+                        <option value="4" selected>4</option>
+                    </select>`;
+            canvasDefAttrs = '';
+            canvasDefComment = 'no dimensions for the canvas because they are set dynamically';
+            cssCanvasDisplay = 'display: none; /* will be displayed when canvas size is set */';
+            cssCanvasMaxWidth = '/*max-width: 800px;*/ /* commented out so that larger canvas sizes can be set */';
+            cssPageMaxWidthMsg = 'dynamically';
+            customLogic = `
+            var JsuCmn = Jsu.Common;
+
+            var elt_how_to = null;
+            var elt_canvas = null;
+            var elt_layout = null;
+            var elt_model_type = null;
+            var elt_fsm_operations = null;
+            var elt_output_indents = null;
+
+            var autoBackupIdPrefix = 'nvc_advanced_example_autoBackupId';
+            var fsmAlphabetContainerOptions = null;
+
+            window.addEventListener('load', function() {
+                if(!Nvc.quick.setOutput('elt_output')) {
+                    return;
+                }
+
+                elt_how_to = document.getElementById('elt_how_to');
+                elt_canvas = document.getElementById('elt_canvas');
+                elt_layout = document.getElementById('elt_layout');
+                elt_model_type = document.getElementById('elt_model_type');
+                elt_fsm_operations = document.getElementById('elt_fsm_operations');
+                elt_output_indents = document.getElementById('elt_output_indents');
+
+                var layout = JsuCmn.getLocalStorageItem(autoBackupIdPrefix + '_elt_layout');
+                if(layout !== null) {
+                    elt_layout.value = layout;
+                }
+                var modelType = JsuCmn.getLocalStorageItem(autoBackupIdPrefix + '_elt_model_type');
+                if(modelType !== null) {
+                    elt_model_type.value = modelType;
+                }
+                var outputIndents = JsuCmn.getLocalStorageItem(autoBackupIdPrefix + '_elt_output_indents');
+                if(outputIndents !== null) {
+                    elt_output_indents.value = outputIndents;
+                }
+
+                switchLayout(false);
+
+                window.addEventListener('resize', function() {
+                    tieFsmAlphabetContainerToCanvas();
+                });
+            });
+
+            function switchLayout(save) {
+                var layout = elt_layout.value;
+
+                var canvasWidth = 800; // default width
+                var canvasHeight = 600; // default height
+                switch(layout) {
+                    case 'default': break; // nothing to do
+                    case 'base':
+                        canvasHeight = '65%'; // see (1) below
+                    break;
+                    case 'wide':
+                        canvasWidth = '97%'; // see (1) below
+                        canvasHeight = '65%'; // see (1) below
+                    break;
+                }
+
+                // (1) value expressed in relation to screen dimensions
+                //     value chosen so that the content of the page is visible without the horizontal scroll bar even when the vertical bar is visible
+                //         tested on Chrome, Edge and Firefox but might not work on every screen display
+                //         influenced by resolution, inches and display scaling (among others?)
+
+                var startOptions = {
+                    'canvas': {
+                        'width': canvasWidth,
+                        'height': canvasHeight,
+                    },
+                    'fsmAlphabetContainer': {
+                        'showCanvas': function() { // set because canvas was hidden at the beginning
+                            JsuCmn.setEltVisible(elt_canvas, true, 'block');
+                        },
+                        'showAlphabet': function(fsmAlphabetContainer) { // set because FSM alphabet container was hidden at the beginning
+                            switchModelType(false); // will also update the visibility of the FSM alphabet container
+                        },
+                        'width': function() { return 0.75 * elt_canvas.width; },
+                        'height': null,
+                        'spacingLeft': function() { return 0.125 * elt_canvas.width; }, // so that FSM alphabet container is centered horizontally
+                        'spacingTop': null,
+                    },
+                };
+                // we don't actually need to call this function more than once
+                //     but doing so makes the code easier to understand
+                //     otherwise we would need to distinguish between first initialization and subsequent changes that trigger switchLayout()
+                if(!Nvc.quick.startNvc('elt_canvas', startOptions)) {
+                    return;
+                }
+                fsmAlphabetContainerOptions = startOptions.fsmAlphabetContainer;
+
+                // allow the user to see all nodes and text items but not necessarily links
+                Nvc.moveNodesIntoCanvasVisibleArea();
+                Nvc.moveTextItemsIntoCanvasVisibleArea();
+                Nvc.draw();
+
+                Nvc.quick.installOutputFocusListeners();
+
+                if(save) {
+                    JsuCmn.setLocalStorageItem(autoBackupIdPrefix + '_elt_layout', layout);
+                }
+            }
+
+            function switchModelType(save) {
+                var modelType = elt_model_type.value;
+                Nvc.config.global.autoBackupId = autoBackupIdPrefix + '_' + modelType;
+                Nvc.quick.switchConfig(modelType);
+                JsuCmn.setEltVisible(elt_fsm_operations, modelType === 'fsm');
+                if(save) {
+                    JsuCmn.setLocalStorageItem(autoBackupIdPrefix + '_elt_model_type', modelType);
+                }
+            }
+
+            function switchOutputIndents(save) {
+                var outputIndents = elt_output_indents.value;
+                if(save) {
+                    JsuCmn.setLocalStorageItem(autoBackupIdPrefix + '_elt_output_indents', outputIndents);
+                }
+            }
+
+            function parseOutputIndents() {
+                return parseInt(elt_output_indents.value, 10);
+            }
+
+            function tieFsmAlphabetContainerToCanvas() {
+                // ensure that options defined in startOptions (in another function)
+                // that are allowed by this function are used if any
+                Nvc.tieFsmAlphabetContainerToCanvas(fsmAlphabetContainerOptions);
+            }
+        `;
+            description = 'advanced use case';
+            fsmAlphabetDefAttrs = ' style="display: none;"';
+            fsmAlphabetDefComment = '; element is hidden because canvas is';
+            outputIndentsExpr = 'parseOutputIndents()';
+            pageComment = 'Advanced HTML example file for https://github.com/arlogy/nvc.\n     Started from the basic HTML example file.';
+            tieFsmAlphabetContainerToCanvasFunc = 'tieFsmAlphabetContainerToCanvas';
+            break;
+
+        default:
+            throw new Error(`Example type '${exampleType}' is not supported`);
+    }
+
+    return `<!-- ${pageComment} -->
+
+<!doctype html>
+<html>
+    <head>
+        <title>Network Designer (${description})</title>
+        <meta charset="utf-8">
+        <style>
+            a {
+                color: black;
+            }
+
+            b.shallow {
+                color: darkslategrey;
+            }
+
+            body {
+                text-align: center;
+                background: #DFDFDF;
+                margin-bottom: 20px;
+                font: 14px/18px 'Lucida Grande', 'Segoe UI', sans-serif;
+            }
+
+            div {
+                margin: auto;
+                text-align: left;
+                max-width: 800px; /* same value as default canvas width (which is set ${cssPageMaxWidthMsg}) */
+            }
+
+            h1 {
+                font: bold italic 25px Georgia, serif;
+            }
+
+            small {
+                font-size: .75em;
+            }
+
+            .error {
+                display: block;
+                color: red;
+                font-size: 28px;
+                line-height: 30px;
+                padding: 30px;
+            }
+
+            .faded, .faded a {
+                color: grey;
+            }
+
+            #elt_canvas {
+                ${cssCanvasDisplay}
+                ${cssCanvasMaxWidth}
+                background: white;
+                border-radius: 20px;
+                -moz-border-radius: 20px;
+                margin: 10px auto;
+            }
+
+            #elt_output {
+                display: none;
+                width: 75%;
+                height: 400px;
+                margin: 0 auto;
+            }
+
+            #elt_canvas_fsm_alphabet:focus, #elt_output:focus {
+                outline: 3px double #32a1ce;
+            }
+        </style>
+    </head>
+
+    <!-- autocomplete is used below to prevent automatic content caching in Firefox -->
+
+    <body>
+        <h1>Network Designer
+            <small class="faded">
+                <a href="javascript:JsuCmn.switchEltVisibility(elt_how_to); ${tieFsmAlphabetContainerToCanvasFunc}();">How-To</a>
+                <small class="faded"><small>(${description})</small></small>
+            </small>
+        </h1>
+
+        <div id="elt_how_to" style="display: none;">
+            <p>
+                Use the white box below (aka the canvas) to draw networks and such.
+                Automatic backup/restore is enabled for most browsers unless cookies are blocked.
+            </p>
+            <ul>
+                <li><b class="shallow">Add a node:</b> double-click on an empty area in the canvas.</li>
+                <li><b class="shallow">Add an arrow:</b> shift-drag on the canvas from a node or an empty area.</li>
+                <li><b class="shallow">Move something:</b> drag it around; also do this to change the angle or direction of an arrow.</li>
+                <li><b class="shallow">Move all nodes and arrows:</b> drag an empty area in the canvas.</li>
+                <li><b class="shallow">Delete something:</b> click it and press the delete key (not the backspace key).</li>
+                <li><b class="shallow">Resize selected node:</b> shift-scroll on the canvas; use the keyboard shortcut <i>Shift+Enter</i> to reset the size.</li>
+            </ul>
+            <ul>
+                <li><b class="shallow">Type a numeric subscript:</b> put an underscore before each digit (e.g. S_0_9).</li>
+                <li><b class="shallow">Type a Greek letter:</b> put a backslash before it (e.g. \\beta or \\Beta).</li>
+                <li><b class="shallow">Move text cursor when visible:</b> use left/right arrow keys; home/end keys move the cursor to the beginning or end.</li>
+                <li><b class="shallow">Add a text item:</b> double-click on an empty area in the canvas while holding down the <i>Ctrl</i> key.</li>
+            </ul>
+            <ul>
+                <li><b class="shallow">Make initial state in FSM:</b> add the appropriate arrow.</li>
+                <li><b class="shallow">Make accept state in FSM:</b> double-click on an existing state.</li>
+                <li><b class="shallow">Set FSM alphabet or transition input:</b> enter a comma-separated value (e.g. a, 0, \\alpha, "\\gamma", _0, " ", ",", """", ');
+                the comma character possibly followed by a maximum of four spaces are the field separators;
+                a double quote inside a field enclosed with double quotes must be escaped by preceding it with another double quote (hence """" instead of """);
+                characters that cannot be typed in the canvas are ignored.</li>
+            </ul>
+            <ul>
+                <li><b class="shallow">Set arrow-head at source node for digraphs:</b> double-click on an arrow joining two distinct nodes.</li>
+            </ul>
+        </div>
+
+        <!-- ${canvasDefComment} -->
+        <canvas id="elt_canvas"${canvasDefAttrs}>
+            <span class="error">Your browser does not support<br>the HTML5 &lt;canvas&gt; element.</span>
+        </canvas>
+
+        <!-- several attributes will be overridden after a successful Nvc.setFsmAlphabetContainer()${fsmAlphabetDefComment} -->
+        <input type="text" id="elt_canvas_fsm_alphabet"${fsmAlphabetDefAttrs}
+               value="" placeholder="FSM alphabet container not initialized" title="FSM alphabet container not initialized" autocomplete="off">
+
+        <div>
+            <p style="text-align: center;">
+                <b class="faded">General:</b>
+                    <a href="javascript:javascript:JsuCmn.switchEltVisibility(elt_help)">Help</a>
+                  | <a href="javascript:javascript:Nvc.quick.switchOutputFocus()">I/O</a>
+                &nbsp;-&nbsp;
+                <b class="faded">Export as:</b>
+                    <a href="javascript:Nvc.quick.outputJson(${outputIndentsExpr})">JSON</a>
+                  | <a href="javascript:Nvc.quick.outputPng()">PNG</a>
+                  | <a href="javascript:Nvc.quick.outputSvg(${outputIndentsExpr})">SVG</a>
+                  | <a href="javascript:Nvc.quick.outputLatex()">LaTeX</a>
+                &nbsp;-&nbsp;
+                <b class="faded">Import from:</b>
+                    <a href="javascript:Nvc.quick.loadJsonFromOutput()">JSON</a>
+                &nbsp;-&nbsp;
+                <b class="faded">Clear data:</b>
+                    <a href="javascript:Nvc.quick.clearData()">Clear</a>${additionalActionButtons}
+            </p>
+
+            <div id="elt_help" style="display: none;">
+                <p>
+                    Use the <i>Ctrl+Space</i> key combination to show/hide the handy container for I/O operations.
+                    On Mac you might want to use <i>Ctrl+Shift+Space</i> for example.
+                    Besides, if you requested this page from a web server (i.e. you are not running a local build)
+                    and you cannot interact with the canvas, please switch to Private or Incognito browsing mode.
+                </p>
+            </div>
+
+            <textarea id="elt_output" placeholder="Container for I/O operations" autocomplete="off"></textarea>
+        </div>
+
+        <p style="margin-top: 25px;">
+            <i>
+                Created in HTML5 and JavaScript,
+                by <a href="https://github.com/evanw/fsm">Evan Wallace</a> (2010)
+                and <a href="https://github.com/arlogy/nvc">arlogy</a> (2020).
+            </i>
+        </p>
+
+        <script src="./api_files/jsu_common.js"></script>
+        <script src="./api_files/jsu_csv_parser.js"></script>
+        <script src="./api_files/jsu_event.js"></script>
+        <script src="./api_files/jsu_latex.js"></script>
+        <script src="./api_files/nvc.js"></script>
+        <script src="./api_files/nvc_fsm.js"></script>
+        <script src="./api_files/nvc_quick.js"></script>
+        <script>${customLogic}</script>
+    </body>
+</html>
+`;
+};
+
+module.exports = {
+    getExampleHtml,
+};
