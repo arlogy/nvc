@@ -1,6 +1,6 @@
 # Changelog
 
-## Next version
+## 1.1.1 - 2023/08/27
 
 - Improve the names and logic of CLI tools, removing unnecessary ones.
 
