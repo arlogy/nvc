@@ -1,4 +1,4 @@
-# Examples to get started with ncv
+# Examples to get started with nvc
 
 ## FSM data
 

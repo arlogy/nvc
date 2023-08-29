@@ -29,7 +29,7 @@ ctrl_c_handler() {
 # --------------------------------------
 
 # Copies latest API files from one directory to another. The destination
-# directory will be created if it doesn't exists.
+# directory will be created if it doesn't exist.
 copy_api_files() {
     if [ "$#" -ne 2 ]; then
         echo "2 parameters expected to copy API files, $# given" 1>&2 && return 1
