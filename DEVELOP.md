@@ -24,7 +24,7 @@ The public API is tested, which excludes internal logic (mainly for `src/nvc.js`
 Sample codes are also tested where appropriate.
 
 The test dependencies are as follows, each installed using `npm install <package> --save-dev`.
-- mocha for unit testing.
+- mocha as a test framework (and Node.js' built-in assert module for assertions).
 - sinon for spies, stubs and mocks.
 - jsdom to imitate in a Node.js environment the behavior of a browser.
 
